@@ -1,0 +1,584 @@
+<!-- =========================
+PASTE THIS AS: index.html
+========================= -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Credit Repair | Free 3-Bureau Review</title>
+  <meta name="description" content="Get a free 3-bureau credit review and a simple action plan. Dispute inaccurate, incomplete, or unverifiable reporting and build stronger credit habits."/>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#101a33;
+      --muted:#b9c2d6;
+      --text:#eef2ff;
+      --brand:#6ee7ff;
+      --brand2:#a78bfa;
+      --line:rgba(255,255,255,.12);
+      --ok:#34d399;
+      --warn:#fbbf24;
+      --shadow: 0 18px 60px rgba(0,0,0,.35);
+      --radius:18px;
+      --max:1100px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background:
+        radial-gradient(900px 500px at 10% 10%, rgba(110,231,255,.18), transparent 60%),
+        radial-gradient(900px 500px at 90% 20%, rgba(167,139,250,.18), transparent 60%),
+        var(--bg);
+      color:var(--text);
+      line-height:1.45;
+    }
+    a{color:inherit}
+    .wrap{max-width:var(--max); margin:0 auto; padding:0 18px;}
+    header{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter:saturate(140%) blur(10px);
+      background: rgba(11,18,32,.65);
+      border-bottom:1px solid var(--line);
+    }
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 0;
+      gap:14px;
+    }
+    .logo{
+      display:flex; align-items:center; gap:10px; text-decoration:none;
+      font-weight:800; letter-spacing:.2px;
+    }
+    .mark{
+      width:34px; height:34px; border-radius:10px;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      box-shadow: 0 10px 25px rgba(110,231,255,.15);
+    }
+    .navlinks{display:flex; gap:14px; flex-wrap:wrap}
+    .navlinks a{
+      text-decoration:none; color:var(--muted);
+      font-weight:600; font-size:14px;
+      padding:8px 10px; border-radius:12px;
+    }
+    .navlinks a:hover{background: rgba(255,255,255,.06); color:var(--text)}
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      gap:10px;
+      padding:12px 14px;
+      border-radius:14px;
+      font-weight:800;
+      text-decoration:none;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      transition: transform .08s ease;
+      white-space:nowrap;
+      cursor:pointer;
+    }
+    .btn:hover{transform: translateY(-1px)}
+    .btn.primary{
+      border:none;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      color:#06101f;
+      box-shadow: 0 18px 45px rgba(167,139,250,.15);
+    }
+
+    .hero{ padding:54px 0 18px; }
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:18px;
+      align-items:stretch;
+    }
+    @media (max-width: 900px){
+      .grid{grid-template-columns:1fr}
+      .navlinks{display:none}
+    }
+    .card{
+      background: rgba(16,26,51,.78);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .heroCard{padding:34px;}
+    .kicker{
+      display:inline-flex; gap:8px; align-items:center;
+      font-weight:800; color: #06101f;
+      background: rgba(110,231,255,.92);
+      padding:7px 12px; border-radius:999px;
+      font-size:13px;
+    }
+    h1{
+      margin:16px 0 10px;
+      font-size: clamp(34px, 4vw, 56px);
+      line-height:1.05;
+      letter-spacing:-.8px;
+    }
+    .sub{
+      color: var(--muted);
+      font-size: 18px;
+      max-width: 62ch;
+    }
+    .ctaRow{display:flex; gap:12px; flex-wrap:wrap; margin-top:18px}
+    .fine{ margin-top:12px; color: rgba(255,255,255,.72); font-size:13px; }
+    .sideCard{padding:22px}
+    .sideTitle{font-weight:900; font-size:16px; margin:0 0 10px}
+    .badge{
+      display:flex; gap:10px; align-items:flex-start;
+      padding:12px; border-radius:16px;
+      background: rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+      margin-top:10px;
+    }
+    .dot{
+      width:12px; height:12px; border-radius:999px; margin-top:4px;
+      background: var(--ok);
+      box-shadow: 0 0 0 6px rgba(52,211,153,.12);
+      flex: 0 0 auto;
+    }
+    .dot.warn{
+      background: var(--warn);
+      box-shadow: 0 0 0 6px rgba(251,191,36,.12);
+    }
+
+    section{padding:34px 0}
+    .sectionHead{
+      display:flex; justify-content:space-between; align-items:flex-end; gap:16px;
+      margin-bottom:14px;
+    }
+    h2{margin:0; font-size:28px; letter-spacing:-.3px}
+    .muted{color:var(--muted)}
+    .cols4{
+      display:grid; grid-template-columns: repeat(4, 1fr);
+      gap:14px;
+    }
+    @media (max-width: 900px){ .cols4{grid-template-columns:1fr 1fr} }
+    @media (max-width: 560px){ .cols4{grid-template-columns:1fr} }
+    .mini{
+      padding:18px;
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .mini b{display:block; margin-bottom:6px}
+
+    .list{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+    .pill{
+      font-size:13px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: rgba(255,255,255,.86);
+    }
+
+    .steps{
+      display:grid; grid-template-columns: repeat(4, 1fr);
+      gap:14px;
+    }
+    @media (max-width: 900px){ .steps{grid-template-columns:1fr 1fr} }
+    @media (max-width: 560px){ .steps{grid-template-columns:1fr} }
+    .stepNum{
+      width:36px;height:36px;border-radius:12px;
+      background: rgba(110,231,255,.14);
+      border:1px solid rgba(110,231,255,.25);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:900;
+      margin-bottom:10px;
+    }
+
+    .callout{
+      padding:22px;
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      align-items:center;
+    }
+    @media (max-width: 720px){ .callout{flex-direction:column; align-items:stretch} }
+
+    .pricing{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+      align-items:stretch;
+    }
+    @media (max-width: 900px){ .pricing{grid-template-columns:1fr} }
+    .priceCard{ padding:22px; }
+    .priceTop{ display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .priceName{ font-weight:900; font-size:18px; }
+    .priceValue{ font-weight:950; font-size:28px; letter-spacing:-.4px; }
+    .priceSub{ color: var(--muted); margin-top:4px; }
+    .checklist{ margin:14px 0 0; padding:0; list-style:none; }
+    .checklist li{
+      padding:10px 0;
+      border-top:1px solid rgba(255,255,255,.08);
+      color: rgba(255,255,255,.9);
+    }
+    .checklist li:first-child{ border-top:none; padding-top:0; }
+    .enrollRow{ margin-top:16px; display:flex; gap:10px; flex-wrap:wrap; }
+
+    input, textarea{
+      width:100%;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      outline:none;
+    }
+    label{font-size:13px; color: rgba(255,255,255,.75); font-weight:700}
+
+    footer{
+      padding:26px 0 40px;
+      color: rgba(255,255,255,.65);
+      border-top:1px solid var(--line);
+      margin-top:22px;
+    }
+    .small{font-size:12.5px}
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="wrap">
+      <div class="nav">
+        <a class="logo" href="#top">
+          <span class="mark" aria-hidden="true"></span>
+          <span>Your Credit Brand</span>
+        </a>
+        <nav class="navlinks" aria-label="Site">
+          <a href="#benefits">Benefits</a>
+          <a href="#services">What We Do</a>
+          <a href="#easy">How It Works</a>
+          <a href="#pricing">Pricing</a>
+        </nav>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <a class="btn" href="enroll.html">ENROLL</a>
+          <a class="btn primary" href="#review">Free Review</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- HERO -->
+    <section class="hero">
+      <div class="wrap">
+        <div class="grid">
+          <div class="card heroCard">
+            <div class="kicker">Free 3-Bureau Review</div>
+            <h1>Fix what’s hurting your credit — and start moving your score up.</h1>
+            <p class="sub">
+              In minutes, get a clear breakdown of what’s reporting on your credit, how it’s affecting your score,
+              and the fastest legal steps to improve it. Start with a <b>free 3-bureau review</b>.
+            </p>
+            <div class="ctaRow">
+              <a class="btn primary" href="#review">Get My Free Review</a>
+              <a class="btn" href="enroll.html">ENROLL</a>
+            </div>
+            <div class="fine">No long-term contract • Cancel anytime • Results vary; no outcome is guaranteed.</div>
+          </div>
+
+          <aside class="card sideCard">
+            <p class="sideTitle">What you’ll receive</p>
+
+            <div class="badge">
+              <span class="dot" aria-hidden="true"></span>
+              <div>
+                <b>3-Bureau Walkthrough</b>
+                <div class="muted">See what’s reporting across all three bureaus.</div>
+              </div>
+            </div>
+
+            <div class="badge">
+              <span class="dot warn" aria-hidden="true"></span>
+              <div>
+                <b>Score Impact Clarity</b>
+                <div class="muted">Understand what’s lowering your score and why.</div>
+              </div>
+            </div>
+
+            <div class="badge">
+              <span class="dot" aria-hidden="true"></span>
+              <div>
+                <b>Personal Action Plan</b>
+                <div class="muted">Simple next steps: disputes + credit-building moves.</div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- BENEFITS -->
+    <section id="benefits">
+      <div class="wrap">
+        <div class="sectionHead">
+          <div>
+            <h2>Don’t let credit slow down your goals</h2>
+            <div class="muted">Better credit can help you qualify more easily — and pay less over time.</div>
+          </div>
+        </div>
+
+        <div class="cols4">
+          <div class="mini">
+            <b>Buy a Home Sooner</b>
+            <div class="muted">Strengthen your profile for mortgage approval.</div>
+          </div>
+          <div class="mini">
+            <b>Lower Your Borrowing Costs</b>
+            <div class="muted">Better rates can save you real money.</div>
+          </div>
+          <div class="mini">
+            <b>Get Approved With Confidence</b>
+            <div class="muted">Reduce surprises in lending decisions.</div>
+          </div>
+          <div class="mini">
+            <b>Build Long-Term Credit Strength</b>
+            <div class="muted">Learn habits that keep scores healthy.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHAT WE DO -->
+    <section id="services">
+      <div class="wrap">
+        <div class="sectionHead">
+          <div>
+            <h2>We help you dispute inaccurate, incomplete, or unverifiable credit reporting</h2>
+            <div class="muted">
+              If something on your report is wrong (or can’t be verified), we help you challenge it through the proper process.
+            </div>
+          </div>
+          <a class="btn primary" href="enroll.html">ENROLL NOW</a>
+        </div>
+
+        <div class="card" style="padding:22px;">
+          <div class="list" aria-label="Items we may address">
+            <span class="pill">Collections</span>
+            <span class="pill">Charge-offs</span>
+            <span class="pill">Late payments</span>
+            <span class="pill">Repossessions</span>
+            <span class="pill">Foreclosures</span>
+            <span class="pill">Judgments</span>
+            <span class="pill">Tax liens</span>
+            <span class="pill">Inquiries</span>
+            <span class="pill">Personal info errors</span>
+            <span class="pill">Bankruptcy</span>
+            <span class="pill">And more</span>
+          </div>
+
+          <p class="small" style="margin-top:12px; color: rgba(255,255,255,.65);">
+            We can’t promise removals. Accurate, current, and verifiable information may remain on your report.
+            Our focus is on correcting errors and improving your overall credit profile.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section id="easy">
+      <div class="wrap">
+        <div class="sectionHead">
+          <div>
+            <h2>Repairing your credit is easier than ever</h2>
+            <div class="muted">We handle the process — you stay informed and in control.</div>
+          </div>
+        </div>
+
+        <div class="steps">
+          <div class="mini">
+            <div class="stepNum">1</div>
+            <b>Review & Strategy</b>
+            <div class="muted">We analyze all 3 bureaus and identify the biggest score blockers.</div>
+          </div>
+          <div class="mini">
+            <div class="stepNum">2</div>
+            <b>Dispute Preparation</b>
+            <div class="muted">We prepare and send targeted dispute letters and documentation.</div>
+          </div>
+          <div class="mini">
+            <div class="stepNum">3</div>
+            <b>Track & Respond</b>
+            <div class="muted">We monitor results and respond as bureaus update your file.</div>
+          </div>
+          <div class="mini">
+            <div class="stepNum">4</div>
+            <b>Credit-Build Coaching</b>
+            <div class="muted">Advice on utilization, balances, and credit mix while disputes run.</div>
+          </div>
+        </div>
+
+        <div class="card callout" style="margin-top:14px;">
+          <div>
+            <b style="font-size:18px;">What to expect</b>
+            <div class="muted" style="margin-top:6px;">
+              Credit repair is a process — not a one-click fix. Many clients see early movement within 30–45 days,
+              but timelines depend on what’s reporting and how bureaus/creditors respond.
+            </div>
+          </div>
+          <a class="btn primary" href="enroll.html">ENROLL</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRICING -->
+    <section id="pricing">
+      <div class="wrap">
+        <div class="sectionHead">
+          <div>
+            <h2>Credit repair pricing</h2>
+            <div class="muted">Simple options. Clear deliverables.</div>
+          </div>
+        </div>
+
+        <div class="pricing">
+          <div class="card priceCard">
+            <div class="priceTop">
+              <div>
+                <div class="priceName">Credit Audit</div>
+                <div class="priceSub">One-time</div>
+              </div>
+              <div style="text-align:right;">
+                <div class="priceValue">$150</div>
+              </div>
+            </div>
+
+            <ul class="checklist">
+              <li>Comprehensive Credit Audit</li>
+              <li>Credit Portal Setup</li>
+              <li>Credit Repair Setup</li>
+              <li>Personalized Roadmap</li>
+            </ul>
+
+            <div class="small" style="margin-top:10px; color: rgba(255,255,255,.65);">
+              Best for: a clear plan before monthly service.
+            </div>
+
+            <div class="enrollRow">
+              <a class="btn primary" href="enroll.html">ENROLL NOW</a>
+              <a class="btn" href="#review">Free Review First</a>
+            </div>
+
+            <div class="small" style="margin-top:10px; color: rgba(255,255,255,.65);">
+              You can dispute items yourself for free — we’re here if you want expert help managing the process.
+            </div>
+          </div>
+
+          <div class="card priceCard">
+            <div class="priceTop">
+              <div>
+                <div class="priceName">Credit Repair Services</div>
+                <div class="priceSub">$150 / month</div>
+              </div>
+              <div style="text-align:right;">
+                <div class="priceValue">$150</div>
+              </div>
+            </div>
+
+            <ul class="checklist">
+              <li>Unlimited Credit Bureau Disputes</li>
+              <li>Unlimited Creditor Disputes</li>
+              <li>Personalized Dispute Letters</li>
+              <li>24/7 Online Support</li>
+            </ul>
+
+            <div class="small" style="margin-top:10px; color: rgba(255,255,255,.65);">
+              Best for: ongoing disputes + support until you reach your goals.
+            </div>
+
+            <div class="enrollRow">
+              <a class="btn primary" href="enroll.html">ENROLL NOW</a>
+              <a class="btn" href="#review">Free Review First</a>
+            </div>
+
+            <div class="small" style="margin-top:10px; color: rgba(255,255,255,.65);">
+              You can dispute items yourself for free — we’re here if you want expert help managing the process.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FREE REVIEW -->
+    <section id="review">
+      <div class="wrap">
+        <div class="sectionHead">
+          <div>
+            <h2>Get a free 3-bureau credit review</h2>
+            <div class="muted">Share your info and we’ll reach out with next steps.</div>
+          </div>
+          <a class="btn primary" href="enroll.html">ENROLL</a>
+        </div>
+
+        <div class="card" style="padding:22px;">
+          <form action="#" method="post" onsubmit="return fakeSubmit(event)">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div>
+                <label for="name">Full Name</label>
+                <input id="name" name="name" placeholder="Jane Doe" required />
+              </div>
+              <div>
+                <label for="phone">Phone</label>
+                <input id="phone" name="phone" placeholder="(555) 123-4567" required />
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+              <div>
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" placeholder="you@email.com" required />
+              </div>
+              <div>
+                <label for="goal">Main Goal</label>
+                <input id="goal" name="goal" placeholder="Home, auto, rebuild, etc." />
+              </div>
+            </div>
+
+            <div style="margin-top:12px;">
+              <label for="message">Anything we should know?</label>
+              <textarea id="message" name="message" rows="4" placeholder="Tell us what you’re aiming for..."></textarea>
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px">
+              <button class="btn primary" type="submit">Request Free Review</button>
+              <a class="btn" href="enroll.html">Or Enroll Now</a>
+            </div>
+
+            <div class="small" id="formNote" style="margin-top:10px; color: rgba(255,255,255,.65);">
+              By submitting, you agree we may contact you by phone/text/email. Message/data rates may apply.
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center;">
+          <div><b>Your Credit Brand</b> • © <span id="year"></span></div>
+          <div class="small">Not legal advice • Not financial advice • Results vary</div>
+        </div>
+        <div class="small" style="margin-top:10px; color: rgba(255,255,255,.55);">
+          Disclaimer: Credit repair services may not remove accurate, current, and verifiable information from your credit report.
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    function fakeSubmit(e){
+      e.preventDefault();
+      const note = document.getElementById("formNote");
+      note.textContent = "Thanks! Your request was captured locally. Connect a real form handler to receive submissions.";
+      note.style.opacity = 0.9;
+      return false;
+    }
+  </script>
+</body>
+</html>

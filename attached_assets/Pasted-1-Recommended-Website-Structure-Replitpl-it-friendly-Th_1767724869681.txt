@@ -1,0 +1,257 @@
+1. Recommended Website Structure (Replitpl.it-friendly)
+
+This assumes a simple React / Next.js or basic HTML/CSS structure that Replit supports easily.
+
+Global Elements (Every Page)
+
+Header:
+
+Logo
+
+Navigation:
+
+Home
+
+How It Works
+
+Services
+
+Pricing
+
+About
+
+Legal & Disclosures
+
+Contact
+
+Footer (VERY IMPORTANT for compliance):
+
+Cancellation rights
+
+CROA disclaimer
+
+State disclosures (FL & TX)
+
+Privacy Policy
+
+Terms of Service
+
+© Better Credit Consulting
+
+2. Page-by-Page Outline (With Compliance Notes)
+1️⃣ Home Page
+
+Goal: Explain value without promising results or timelines.
+
+Sections
+
+Hero Section:
+
+Headline (safe language):
+
+“Professional Credit Education & Dispute Assistance”
+
+Sub-text:
+
+“We help clients understand their credit reports and assist with disputing inaccurate, unverifiable, or outdated information.”
+
+What We Do (3 columns):
+
+Credit Report Review
+
+Dispute Assistance
+
+Credit Education & Strategy
+
+How We’re Different:
+
+No guarantees
+
+CROA-compliant
+
+Transparent process
+
+Client education focused
+
+⚠️ Avoid on homepage:
+
+“Guaranteed results”
+
+“Boost your score in 30 days”
+
+Specific point increases
+
+2️⃣ How It Works
+
+This page protects you legally.
+
+Step-by-Step
+
+Free Credit Evaluation
+
+Soft pull or client-provided reports only
+
+Personalized Action Plan
+
+Based on FCRA-allowed disputes
+
+Dispute Assistance
+
+We help draft and submit disputes
+
+Ongoing Education & Monitoring Guidance
+
+Compliance Footer Callout
+
+“Results vary. We do not remove accurate, current, or verifiable information.”
+
+3️⃣ Services Page
+
+Break services into educational + assistance, not “repair promises.”
+
+Examples
+
+Credit Report Analysis
+
+Dispute Letter Preparation
+
+Creditor Communication Assistance
+
+Credit Building Education
+
+Identity Issue Guidance (if applicable)
+
+⚠️ Avoid
+
+“Debt elimination”
+
+“We remove collections”
+
+“We force bureaus to delete”
+
+4️⃣ Pricing Page
+
+This is where Florida + Texas rules matter most.
+
+Structure
+
+Monthly plan (recommended vs upfront)
+
+Clear statement:
+
+“You are not charged for services that have not yet been performed.”
+
+Mandatory Disclosure Block
+
+“Federal law prohibits credit repair companies from charging fees before services are fully performed unless permitted by state law and properly bonded.”
+
+For Florida
+
+State that advance payments are collected only because bonding/trust requirements are met (if true).
+
+For Texas
+
+Recommend post-service billing only unless you are fully registered and bonded.
+
+5️⃣ About Us
+
+Humanizes the company, reduces regulatory scrutiny.
+
+Include
+
+Mission statement
+
+Education-first philosophy
+
+Compliance commitment
+
+States served (explicitly list FL & TX)
+
+6️⃣ Contact Page
+
+Required
+
+Physical mailing address (or registered agent address)
+
+Email
+
+Phone number
+
+Business hours
+
+⚠️ Texas strongly prefers transparency here.
+
+7️⃣ Legal & Disclosures Page (CRITICAL)
+
+This should be its own page, not buried.
+
+Federal CROA Disclosure
+
+Include:
+
+Right to cancel within 3 business days
+
+No guarantee of results
+
+No misleading claims
+
+Client can dispute directly with bureaus
+
+Florida Disclosure
+
+Example language:
+
+“Better Credit Consulting complies with Florida’s Credit Service Organizations Act and maintains a $10,000 surety bond or trust account as required by law.”
+
+Texas Disclosure
+
+Example language:
+
+“Better Credit Consulting is registered as a Credit Services Organization with the Texas Secretary of State and maintains the required surety bond pursuant to Texas Finance Code Chapter 393.”
+
+8️⃣ Privacy Policy
+
+Data handling
+
+Credit report security
+
+No resale of personal data
+
+9️⃣ Terms of Service
+
+Service limitations
+
+No legal advice disclaimer
+
+Arbitration clause (optional but common)
+
+3. State-Specific Implementation Notes (Important)
+Florida
+
+✔ Bond or trust account must exist before advance payments
+✔ Website must NOT imply licensing if not required
+✔ Clear cancellation + refund language
+
+Texas
+
+✔ Registration before offering services
+✔ Bond must be active and referenced accurately
+✔ Annual renewal reminder (internal compliance, not public)
+
+4. Replit Folder Structure (Simple)
+/src
+  /pages
+    index.jsx        (Home)
+    how-it-works.jsx
+    services.jsx
+    pricing.jsx
+    about.jsx
+    contact.jsx
+    legal.jsx
+    privacy.jsx
+    terms.jsx
+/components
+  Header.jsx
+  Footer.jsx
+/styles
+  main.css
