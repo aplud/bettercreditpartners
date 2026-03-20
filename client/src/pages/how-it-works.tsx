@@ -136,7 +136,7 @@ export default function HowItWorks() {
             Ready to Get Started?
           </h2>
           <p className="text-white/80 text-lg mb-8">
-            Start your credit repair journey online — no phone call required.
+            Start your credit repair journey online. No phone call required.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/enroll">

@@ -60,7 +60,7 @@ export async function registerRoutes(
   });
 
   // SignNow: Create embedded signing invite
-  // No user details needed — uses placeholder for embedded signing.
+  // No user details needed. Uses placeholder for embedded signing.
   // Real user info is collected at checkout.
   app.post("/api/signnow/create-invite", async (req, res) => {
     try {

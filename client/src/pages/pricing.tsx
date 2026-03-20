@@ -118,7 +118,7 @@ export default function Pricing() {
                 </Button>
               </Link>
               <p className="mt-3 text-sm text-white/50">
-                You can dispute items yourself for free — we're here if you want expert help managing the process.
+                You can dispute items yourself for free. We're here if you want expert help managing the process.
               </p>
             </div>
           </div>

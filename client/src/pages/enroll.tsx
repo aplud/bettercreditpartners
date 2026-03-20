@@ -264,7 +264,7 @@ export default function Enroll() {
       case 2:
         return {
           title: "Activate your account",
-          subtitle: "Your disclosure is signed. One last step \u2014 set up your account on our secure checkout page to begin.",
+          subtitle: "Your disclosure is signed. Set up your account on our secure checkout page to begin.",
         };
       default:
         return { title: "", subtitle: "" };
@@ -290,7 +290,7 @@ export default function Enroll() {
 
       {/* Form Section */}
       <section className="flex-1 bg-[#060414] py-8 md:py-10">
-        <div className="max-w-2xl mx-auto px-6 md:px-8">
+        <div className={`mx-auto px-4 md:px-8 ${step === 1 ? "max-w-4xl" : "max-w-2xl"}`}>
           <StepProgress currentStep={step} />
 
           {/* ===== STEP 0: ELIGIBILITY CHECK ===== */}
@@ -403,11 +403,10 @@ export default function Enroll() {
                     ref={iframeRef}
                     src={signingLink}
                     width="100%"
-                    height="680"
                     title="Sign Credit Repair Disclosure"
-                    className="bg-white block"
+                    className="bg-white block w-full"
                     allow="camera"
-                    style={{ minHeight: "500px" }}
+                    style={{ minHeight: "75vh", height: "900px", maxHeight: "1200px" }}
                   />
                 </div>
               )}
@@ -541,7 +540,7 @@ export default function Enroll() {
                 </div>
                 <div>
                   <p className="text-white font-medium text-sm">
-                    $129/month &mdash; billed after your first month
+                    $129/month, billed after your first month
                   </p>
                   <p className="text-white/50 text-xs mt-1">
                     You're only billed once we've completed the first month of work. Cancel anytime with no penalties.

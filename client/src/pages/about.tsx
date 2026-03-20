@@ -132,7 +132,7 @@ export default function About() {
             Ready to Work With Us?
           </h2>
           <p className="text-white/80 text-lg mb-8">
-            Start your credit repair journey online — it only takes a few minutes.
+            Start your credit repair journey online. It only takes a few minutes.
           </p>
           <Link href="/enroll">
             <Button

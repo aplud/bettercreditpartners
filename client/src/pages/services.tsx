@@ -155,7 +155,7 @@ export default function Services() {
             Learn More About How We Can Help
           </h2>
           <p className="text-white/80 text-lg mb-8">
-            Enroll online in minutes — no phone call required.
+            Enroll online in minutes. No phone call required.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/enroll">

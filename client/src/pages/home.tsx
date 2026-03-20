@@ -8,20 +8,20 @@ import { LoanCalculator } from "@/components/loan-calculator";
 
 const benefitItems = [
   {
-    title: "Buy a Home Sooner",
-    description: "Strengthen your profile for mortgage approval.",
+    title: "Improve Financial Flexibility",
+    description: "Open up more options for the financial products you need.",
   },
   {
     title: "Lower Your Borrowing Costs",
-    description: "Better rates can save you real money.",
+    description: "Better rates can save you real money over time.",
   },
   {
     title: "Get Approved With Confidence",
-    description: "Reduce surprises in lending decisions.",
+    description: "Make everyday approvals easier, from rentals to credit lines.",
   },
   {
     title: "Build Long-Term Credit Strength",
-    description: "Learn habits that keep scores healthy.",
+    description: "Learn habits that keep your credit profile healthy.",
   },
 ];
 
@@ -68,7 +68,7 @@ export default function Home() {
               </span>
 
               <h1 className="mt-6 text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight" data-testid="text-hero-title">
-                Fix what's hurting your credit — and start moving your score up.
+                Fix what's hurting your credit and start moving your score up.
               </h1>
 
               <p className="mt-4 text-lg text-white/70 max-w-2xl" data-testid="text-hero-subtitle">
@@ -135,7 +135,7 @@ export default function Home() {
             <h2 className="text-2xl md:text-3xl font-bold text-white" data-testid="text-benefits-title">
               Don't let credit slow down your goals
             </h2>
-            <p className="text-white/60 mt-2">Better credit can help you qualify more easily — and pay less over time.</p>
+            <p className="text-white/60 mt-2">Better credit can help you qualify more easily and pay less over time.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -200,7 +200,7 @@ export default function Home() {
             <h2 className="text-2xl md:text-3xl font-bold text-white" data-testid="text-steps-title">
               Repairing your credit is easier than ever
             </h2>
-            <p className="text-white/60 mt-2">We handle the process — you stay informed and in control.</p>
+            <p className="text-white/60 mt-2">We handle the process. You stay informed and in control.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -223,7 +223,7 @@ export default function Home() {
             <div>
               <p className="font-bold text-white text-lg">What to expect</p>
               <p className="text-white/60 mt-2">
-                Credit repair is a process — not a one-click fix. Timelines depend on what's reporting and how
+                Credit repair is a process, not a one-click fix. Timelines depend on what's reporting and how
                 bureaus and creditors respond. Results vary and no specific outcome is guaranteed.
               </p>
             </div>
@@ -257,7 +257,7 @@ export default function Home() {
             <div className="rounded-2xl bg-[#123f56]/20 border border-white/10 p-6 text-center">
               <p className="font-bold text-white text-lg mb-1">Sign Up</p>
               <p className="text-3xl font-bold text-green-400 mb-2">Free</p>
-              <p className="text-sm text-white/60">Enroll online and sign your disclosure — no payment to start.</p>
+              <p className="text-sm text-white/60">Enroll online and sign your disclosure. No payment to start.</p>
             </div>
             <div className="rounded-2xl bg-[#123f56]/20 border border-white/10 p-6 text-center">
               <p className="font-bold text-white text-lg mb-1">Credit Report</p>
@@ -297,7 +297,7 @@ export default function Home() {
               Ready to take control of your credit?
             </h2>
             <p className="text-white/60 max-w-2xl mx-auto mb-8">
-              Enroll online in minutes — no phone calls, no appointments. Sign up, sign your agreement, and we'll get to work on your credit right away.
+              Enroll online in minutes. No phone calls, no appointments. Sign up, sign your agreement, and we'll get to work on your credit right away.
             </p>
             <Link href="/enroll">
               <Button size="lg" className="bg-gradient-to-r from-[#52ceff] to-[#c0d353] text-[#060414] font-bold border-0" data-testid="button-cta-enroll">

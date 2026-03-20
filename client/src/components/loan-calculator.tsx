@@ -3,7 +3,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type LoanType = "mortgage" | "auto" | "personal" | "creditCard";
+type LoanType = "auto" | "personal" | "creditCard";
 
 interface TierInfo {
   label: string;
@@ -21,13 +21,6 @@ const FICO_TIERS: TierInfo[] = [
 ];
 
 const APR_TABLES: Record<LoanType, Record<string, number>> = {
-  mortgage: {
-    "300-499": 10.67,
-    "500-579": 9.36,
-    "580-669": 8.16,
-    "670-739": 7.39,
-    "740-850": 7.01,
-  },
   auto: {
     "300-499": 20.99,
     "500-579": 17.78,
@@ -52,15 +45,13 @@ const APR_TABLES: Record<LoanType, Record<string, number>> = {
 };
 
 const LOAN_DEFAULTS: Record<LoanType, { amount: number; term: number }> = {
-  mortgage: { amount: 250000, term: 360 },
   auto: { amount: 40000, term: 60 },
   personal: { amount: 20000, term: 60 },
   creditCard: { amount: 5000, term: 60 },
 };
 
 const LOAN_LABELS: Record<LoanType, string> = {
-  mortgage: "Mortgage",
-  auto: "Auto",
+  auto: "Auto Loan",
   personal: "Personal Loan",
   creditCard: "Credit Card",
 };
@@ -86,7 +77,7 @@ function getTierForScore(score: number): TierInfo {
 function calculateMonthlyPayment(principal: number, annualRate: number, termMonths: number): number {
   if (annualRate === 0) return principal / termMonths;
   const monthlyRate = annualRate / 100 / 12;
-  return (principal * monthlyRate * Math.pow(1 + monthlyRate, termMonths)) / 
+  return (principal * monthlyRate * Math.pow(1 + monthlyRate, termMonths)) /
          (Math.pow(1 + monthlyRate, termMonths) - 1);
 }
 
@@ -108,13 +99,13 @@ export function LoanCalculator() {
 
   const userAPR = APR_TABLES[loanType][userTier.label];
   const worstAPR = APR_TABLES[loanType]["300-499"];
-  
+
   const userMonthlyPayment = calculateMonthlyPayment(defaults.amount, userAPR, defaults.term);
   const worstMonthlyPayment = calculateMonthlyPayment(defaults.amount, worstAPR, defaults.term);
-  
+
   const userTotalInterest = calculateTotalInterest(defaults.amount, userAPR, defaults.term);
   const worstTotalInterest = calculateTotalInterest(defaults.amount, worstAPR, defaults.term);
-  
+
   const lifetimeSavings = Math.round(worstTotalInterest - userTotalInterest);
 
   const sliderMarks = [
@@ -131,9 +122,8 @@ export function LoanCalculator() {
         <h3 className="text-xl md:text-2xl font-bold text-white mb-2" data-testid="text-calculator-title">
           See How Much You Could Save
         </h3>
-        <p className="text-white/60 text-sm max-w-xl mx-auto">
-          You could be spending thousands of dollars more on interest over the lifetime of a loan with 
-          undesirable credit. Explore how much you could save with our interest savings calculator.
+        <p className="text-white/70 text-sm max-w-xl mx-auto">
+          Higher interest rates add up fast. Explore how improving your credit score range could reduce what you pay over the life of a loan.
         </p>
       </div>
 
@@ -144,8 +134,8 @@ export function LoanCalculator() {
               Select Your Loan Type
             </label>
             <Select value={loanType} onValueChange={(v) => handleLoanTypeChange(v as LoanType)}>
-              <SelectTrigger 
-                className="bg-white/5 border-white/20 text-white w-full"
+              <SelectTrigger
+                className="bg-white/8 border-white/15 text-white w-full h-12 text-base"
                 data-testid="select-loan-type"
               >
                 <SelectValue />
@@ -174,7 +164,7 @@ export function LoanCalculator() {
                 className="w-full"
                 data-testid="slider-fico-score"
               />
-              <div className="flex justify-between text-xs text-white/50 mt-3 px-1">
+              <div className="flex justify-between text-xs text-white/60 mt-3 px-1 font-medium">
                 {sliderMarks.map((mark) => (
                   <span key={mark.value}>{mark.label}</span>
                 ))}
@@ -182,37 +172,50 @@ export function LoanCalculator() {
             </div>
           </div>
 
-          <Button 
-            className="w-full bg-[#52ceff] hover:bg-[#52ceff]/90 text-[#060414] font-bold py-6"
-            data-testid="button-calculate"
-          >
-            Calculate my monthly payment
-          </Button>
+          <div className="rounded-xl bg-white/5 border border-white/10 p-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-white/70">Your credit range:</span>
+              <span className="text-white font-semibold">{userTier.range}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-white/70">Estimated APR:</span>
+              <span className="text-white font-semibold">{userAPR.toFixed(2)}%</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-white/70">Loan type:</span>
+              <span className="text-white font-semibold">{LOAN_LABELS[loanType]}</span>
+            </div>
+          </div>
         </div>
 
         <div className="rounded-xl border-2 border-[#123f56] bg-white/5 p-6">
           <div className="space-y-4 mb-6">
             <div className="flex justify-between items-center py-2 border-b border-white/10">
-              <span className="text-white/70">Average loan amount:</span>
-              <span className="text-white font-semibold" data-testid="text-loan-amount">
+              <span className="text-white/80 text-sm font-medium">Average loan amount:</span>
+              <span className="text-white font-bold text-base" data-testid="text-loan-amount">
                 {formatCurrency(defaults.amount)}
               </span>
             </div>
             <div className="flex justify-between items-center py-2 border-b border-white/10">
-              <span className="text-white/70">Monthly payment:</span>
-              <span className="text-white font-semibold" data-testid="text-monthly-payment">
+              <span className="text-white/80 text-sm font-medium">Est. monthly payment:</span>
+              <span className="text-white font-bold text-base" data-testid="text-monthly-payment">
                 {formatCurrency(Math.round(userMonthlyPayment))}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b border-white/10">
+              <span className="text-white/80 text-sm font-medium">Total interest paid:</span>
+              <span className="text-white font-bold text-base">
+                {formatCurrency(Math.round(userTotalInterest))}
               </span>
             </div>
           </div>
 
-          <div className="text-center py-6">
-            <p className="text-[#123f56] font-bold text-sm uppercase tracking-wide mb-3" style={{ color: '#52ceff' }}>
+          <div className="text-center py-6 rounded-xl bg-[#0a2a3a]/60 border border-[#52ceff]/10">
+            <p className="text-[#52ceff] font-bold text-sm uppercase tracking-wide mb-3">
               A Score of {score} Could Save You
             </p>
-            <p 
-              className="text-5xl md:text-6xl font-bold text-[#123f56] mb-2"
-              style={{ color: '#123f56' }}
+            <p
+              className="text-5xl md:text-6xl font-bold text-white mb-2"
               data-testid="text-lifetime-savings"
             >
               {formatCurrency(Math.max(0, lifetimeSavings))}
@@ -221,17 +224,20 @@ export function LoanCalculator() {
             <p className="text-white/80 font-semibold uppercase tracking-wide text-sm">
               Over The Life Of Your Loan
             </p>
+            <p className="text-white/40 text-xs mt-2">
+              Compared to the lowest credit tier (300-499)
+            </p>
           </div>
 
-          <p className="text-xs text-white/40 mt-4">
-            *Disclaimer: Average APR & Calculations (as of 2024):{" "}
-            <a 
-              href="https://www.myfico.com/credit-education/calculators/loan-savings-calculator" 
-              target="_blank" 
+          <p className="text-xs text-white/40 mt-4 leading-relaxed">
+            *Estimates based on average APR data (2024). Actual rates depend on your lender, loan terms, and individual credit profile. This calculator is for educational purposes only and does not guarantee any specific rate or savings.{" "}
+            <a
+              href="https://www.myfico.com/credit-education/calculators/loan-savings-calculator"
+              target="_blank"
               rel="noopener noreferrer"
               className="underline hover:text-white/60"
             >
-              https://www.myfico.com/credit-education/calculators/loan-savings-calculator/
+              Source: myFICO
             </a>
           </p>
         </div>
