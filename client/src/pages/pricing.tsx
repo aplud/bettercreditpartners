@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import {
   Check,
@@ -22,6 +23,10 @@ const serviceFeatures = [
 export default function Pricing() {
   return (
     <div className="flex flex-col">
+      <Helmet>
+        <title>Credit Repair Pricing - $129/mo | Better Credit Partners</title>
+        <meta name="description" content="Free enrollment, $35/month credit monitoring through IdentityIQ, then $129/month for unlimited disputes, priority support, and credit education calls. No setup fees. Cancel anytime." />
+      </Helmet>
       <section className="py-16 md:py-24 bg-gradient-to-br from-[#060414] via-[#123f56] to-[#060414]">
         <div className="max-w-5xl mx-auto px-6 md:px-8">
           <div className="text-center mb-12">
@@ -52,10 +57,10 @@ export default function Pricing() {
               <div className="w-12 h-12 rounded-full bg-[#52ceff]/20 flex items-center justify-center mb-4">
                 <span className="text-[#52ceff] font-bold text-lg">2</span>
               </div>
-              <p className="font-bold text-white text-xl mb-2">Credit Report</p>
-              <p className="text-4xl font-bold text-white mb-2">$35</p>
+              <p className="font-bold text-white text-xl mb-2">Credit Monitoring</p>
+              <p className="text-4xl font-bold text-white mb-2">$35<span className="text-lg text-white/50">/mo</span></p>
               <p className="text-white/60 text-sm">
-                Sign up for IdentityIQ so we can pull your credit report, review it with you, and provide credit education.
+                Monthly credit monitoring through IdentityIQ so we can track your reports, review changes with you, and build your dispute strategy.
               </p>
             </div>
 
@@ -120,6 +125,28 @@ export default function Pricing() {
               <p className="mt-3 text-sm text-white/50">
                 You can dispute items yourself for free. We're here if you want expert help managing the process.
               </p>
+            </div>
+          </div>
+
+          {/* Competitor Context */}
+          <div className="rounded-xl bg-white/5 border border-white/10 p-5 text-center mb-4">
+            <p className="text-sm text-white/70">
+              <span className="text-white font-medium">Industry average for credit repair: $79–149/month.</span>{" "}
+              Our $129/month includes unlimited disputes, priority support, and personal credit education calls - services that many competitors charge extra for.
+            </p>
+            <p className="text-xs text-white/40 mt-2">
+              Source: 2024 credit repair industry pricing surveys.
+            </p>
+          </div>
+
+          {/* What You're NOT Paying For */}
+          <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-5 mb-12">
+            <p className="text-sm font-medium text-white mb-2">What you're NOT paying for:</p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/70">
+              <span className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-400" /> No setup fees</span>
+              <span className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-400" /> No per-dispute charges</span>
+              <span className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-400" /> No long-term contracts</span>
+              <span className="flex items-center gap-2"><Check className="h-4 w-4 text-emerald-400" /> No cancellation penalties</span>
             </div>
           </div>
 

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { Helmet } from "react-helmet-async";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +23,9 @@ import {
   Zap,
   AlertTriangle,
   RefreshCw,
+  UserCircle,
+  Info,
+  ChevronDown,
 } from "lucide-react";
 
 // ------- Constants -------
@@ -62,9 +66,10 @@ const CHECKOUT_URL =
   "https://bettercreditpartners.getcredithelpnow.com/checkout-CreditRepairServices";
 
 const STEPS = [
-  { label: "Check Eligibility", icon: ShieldCheck },
-  { label: "Sign Disclosure", icon: FileSignature },
-  { label: "Activate Account", icon: Zap },
+  { label: "Confirm State", icon: MapPin },
+  { label: "Your Info", icon: UserCircle },
+  { label: "Review Rights", icon: FileSignature },
+  { label: "Start Repair", icon: Zap },
 ];
 
 // ------- Progress Bar -------
@@ -154,6 +159,9 @@ export default function Enroll() {
   const [signnowDocumentId, setSignnowDocumentId] = useState("");
   const [signingComplete, setSigningComplete] = useState(false);
   const [signingError, setSigningError] = useState("");
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
+  const [showSigningInfo, setShowSigningInfo] = useState(false);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -169,15 +177,14 @@ export default function Enroll() {
       setSigningLink(data.signingLink);
       setSignnowDocumentId(data.documentId);
       setSigningError("");
-      setStep(1);
+      setStep(2);
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
-    onError: () => {
-      toast({
-        title: "Something went wrong",
-        description: "We couldn't prepare your document. Please try again.",
-        variant: "destructive",
-      });
+    onError: (error) => {
+      console.error("SignNow create-invite error:", error);
+      setSigningError("We couldn't prepare your signing document. This may be a temporary issue. Please try again in a moment.");
+      setStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     },
   });
 
@@ -201,7 +208,7 @@ export default function Enroll() {
   }, [signnowDocumentId]);
 
   useEffect(() => {
-    if (step === 1 && signnowDocumentId) {
+    if (step === 2 && signnowDocumentId) {
       startPolling();
     }
     return () => {
@@ -209,11 +216,11 @@ export default function Enroll() {
     };
   }, [step, signnowDocumentId, startPolling]);
 
-  // When signing completes, advance to step 2
+  // When signing completes, advance to step 3
   useEffect(() => {
-    if (signingComplete && step === 1) {
+    if (signingComplete && step === 2) {
       setTimeout(() => {
-        setStep(2);
+        setStep(3);
         window.scrollTo({ top: 0, behavior: "smooth" });
       }, 1500);
     }
@@ -225,6 +232,8 @@ export default function Enroll() {
     setSelectedState(value);
     setStateRejected(false);
     setStateConfirmed(false);
+    setWaitlistEmail("");
+    setWaitlistSubmitted(false);
 
     if (ELIGIBLE_STATES.has(value)) {
       setStateConfirmed(true);
@@ -256,12 +265,17 @@ export default function Enroll() {
         };
       case 1:
         return {
-          title: signingComplete ? "Disclosure signed!" : "Review & sign the disclosure",
-          subtitle: signingComplete
-            ? "You're all set. Taking you to the next step..."
-            : "Please review and sign the credit repair disclosure below. This is required by federal law before we can begin.",
+          title: "Tell us about yourself",
+          subtitle: "This helps us set up your account and reach you with updates.",
         };
       case 2:
+        return {
+          title: signingComplete ? "Disclosure signed!" : "Review & sign your rights disclosure",
+          subtitle: signingComplete
+            ? "You're all set. Taking you to the next step..."
+            : "This document protects your rights as a consumer. It's required by federal law before we can begin.",
+        };
+      case 3:
         return {
           title: "Activate your account",
           subtitle: "Your disclosure is signed. Set up your account on our secure checkout page to begin.",
@@ -276,6 +290,10 @@ export default function Enroll() {
   // ------- Render -------
   return (
     <div className="flex flex-col min-h-screen">
+      <Helmet>
+        <title>Enroll Now - Start Your Credit Repair | Better Credit Partners</title>
+        <meta name="description" content="Sign up for credit repair online in minutes. Check eligibility, sign your disclosure, and activate your account. No phone calls required." />
+      </Helmet>
       {/* Compact header banner */}
       <section className="py-8 md:py-10 bg-gradient-to-br from-[#060414] via-[#0d2a3a] to-[#060414] border-b border-white/5">
         <div className="max-w-2xl mx-auto px-6 md:px-8 text-center">
@@ -290,7 +308,7 @@ export default function Enroll() {
 
       {/* Form Section */}
       <section className="flex-1 bg-[#060414] py-8 md:py-10">
-        <div className={`mx-auto px-4 md:px-8 ${step === 1 ? "max-w-4xl" : "max-w-2xl"}`}>
+        <div className={`mx-auto px-4 md:px-8 ${step === 2 ? "max-w-4xl" : "max-w-2xl"}`}>
           <StepProgress currentStep={step} />
 
           {/* ===== STEP 0: ELIGIBILITY CHECK ===== */}
@@ -339,36 +357,53 @@ export default function Enroll() {
                     <Button
                       size="lg"
                       className="w-full bg-gradient-to-r from-[#52ceff] to-[#c0d353] text-[#060414] font-bold border-0 h-13 text-base"
-                      disabled={createInviteMutation.isPending}
-                      onClick={handleContinueToSigning}
+                      onClick={() => {
+                        setStep(1);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
                     >
-                      {createInviteMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          Preparing your document...
-                        </>
-                      ) : (
-                        <>
-                          Continue to Disclosure
-                          <ArrowRight className="ml-2 h-5 w-5" />
-                        </>
-                      )}
+                      Continue
+                      <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </div>
                 )}
 
-                {/* Not eligible */}
+                {/* Not eligible - waitlist */}
                 {stateRejected && (
                   <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="flex items-start gap-3">
                       <MapPin className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                      <div>
+                      <div className="flex-1">
                         <h3 className="font-semibold text-white text-sm mb-1">
-                          We're not currently available in your state.
+                          We're not in your state yet, but we're expanding.
                         </h3>
-                        <p className="text-xs text-white/60">
-                          We're expanding to more states soon. Check back later or reach out to us for updates.
+                        <p className="text-xs text-white/60 mb-3">
+                          Enter your email and we'll notify you as soon as we launch in {ALL_STATES.find((s) => s.value === selectedState)?.label}.
                         </p>
+                        <div className="flex gap-2">
+                          <input
+                            type="email"
+                            placeholder="your@email.com"
+                            value={waitlistEmail}
+                            onChange={(e) => setWaitlistEmail(e.target.value)}
+                            className="flex-1 h-10 px-3 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#52ceff]/50"
+                          />
+                          <Button
+                            size="sm"
+                            className="bg-[#52ceff] text-[#060414] font-bold border-0 h-10 px-4"
+                            onClick={() => {
+                              if (waitlistEmail) {
+                                setWaitlistSubmitted(true);
+                              }
+                            }}
+                            disabled={waitlistSubmitted}
+                          >
+                            {waitlistSubmitted ? "Added!" : "Notify Me"}
+                          </Button>
+                        </div>
+                        {waitlistSubmitted && (
+                          <p className="text-xs text-emerald-400 mt-2">You're on the list. We'll reach out when we expand to your state.</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -393,21 +428,110 @@ export default function Enroll() {
             </div>
           )}
 
-          {/* ===== STEP 1: SIGNNOW EMBEDDED SIGNING ===== */}
+          {/* ===== STEP 1: TYPEFORM EMBED ===== */}
           {step === 1 && (
             <div className="space-y-6">
-              {/* Signing iframe */}
-              {signingLink && !signingComplete && !signingError && (
-                <div className="rounded-2xl overflow-hidden border border-white/8 bg-white">
+              <div className="rounded-2xl bg-white/[0.03] border border-white/8 p-6 md:p-8">
+                <div className="text-center mb-4">
+                  <h2 className="text-lg font-semibold text-white mb-1">
+                    Tell us a bit about yourself
+                  </h2>
+                  <p className="text-sm text-white/50">
+                    We'll use this to set up your account and keep you updated on your progress.
+                  </p>
+                </div>
+                <div className="rounded-xl overflow-hidden bg-white" style={{ minHeight: "500px" }}>
                   <iframe
-                    ref={iframeRef}
-                    src={signingLink}
+                    src="https://form.typeform.com/to/b9iyRKAI"
                     width="100%"
-                    title="Sign Credit Repair Disclosure"
-                    className="bg-white block w-full"
-                    allow="camera"
-                    style={{ minHeight: "75vh", height: "900px", maxHeight: "1200px" }}
+                    height="500"
+                    frameBorder="0"
+                    allow="camera; microphone; autoplay; encrypted-media"
+                    title="Enrollment Information"
+                    className="block w-full"
+                    style={{ minHeight: "500px" }}
                   />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-white/50 hover:text-white hover:bg-white/5"
+                  onClick={() => {
+                    setStep(0);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button
+                  className="bg-gradient-to-r from-[#52ceff] to-[#c0d353] text-[#060414] font-bold border-0"
+                  disabled={createInviteMutation.isPending}
+                  onClick={handleContinueToSigning}
+                >
+                  {createInviteMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Preparing your document...
+                    </>
+                  ) : (
+                    <>
+                      Continue to Disclosure
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ===== STEP 2: SIGNNOW EMBEDDED SIGNING ===== */}
+          {step === 2 && (
+            <div className="space-y-6">
+              {/* Signing iframe with explainer */}
+              {signingLink && !signingComplete && !signingError && (
+                <div className="space-y-4">
+                  {/* What am I signing explainer */}
+                  <div className="rounded-xl bg-[#123f56]/20 border border-[#52ceff]/10 p-5">
+                    <button
+                      onClick={() => setShowSigningInfo(!showSigningInfo)}
+                      className="flex items-center justify-between w-full text-left"
+                    >
+                      <span className="text-white font-medium text-sm flex items-center gap-2">
+                        <Info className="h-4 w-4 text-[#52ceff]" />
+                        What am I signing?
+                      </span>
+                      <ChevronDown className={`h-4 w-4 text-white/50 transition-transform ${showSigningInfo ? "rotate-180" : ""}`} />
+                    </button>
+                    {showSigningInfo && (
+                      <div className="mt-3 text-sm text-white/60 space-y-2 animate-in fade-in duration-200">
+                        <p>This is the <strong className="text-white/80">Credit Repair Organizations Act (CROA) disclosure</strong>, a federal document that <strong className="text-white/80">protects your rights</strong> as a consumer.</p>
+                        <p>It confirms:</p>
+                        <ul className="list-disc list-inside space-y-1 ml-2">
+                          <li>Your right to cancel within 3 business days</li>
+                          <li>No upfront fees are charged before services are performed</li>
+                          <li>Exactly what services we will and won't provide</li>
+                          <li>Your right to dispute items on your own for free</li>
+                        </ul>
+                        <p>This is required by federal law before any credit repair company can begin work. It's designed to protect you.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-2xl overflow-hidden border border-white/8 bg-white">
+                    <iframe
+                      ref={iframeRef}
+                      src={signingLink}
+                      width="100%"
+                      title="Sign Credit Repair Disclosure"
+                      className="bg-white block w-full"
+                      allow="camera"
+                      style={{ minHeight: "75vh", height: "900px", maxHeight: "1200px" }}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -464,7 +588,7 @@ export default function Enroll() {
                     className="text-white/50 hover:text-white hover:bg-white/5"
                     onClick={() => {
                       if (pollingRef.current) clearInterval(pollingRef.current);
-                      setStep(0);
+                      setStep(1);
                       setSigningLink("");
                       setSignnowDocumentId("");
                       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -481,8 +605,8 @@ export default function Enroll() {
             </div>
           )}
 
-          {/* ===== STEP 2: ACTIVATE ACCOUNT ===== */}
-          {step === 2 && (
+          {/* ===== STEP 3: ACTIVATE ACCOUNT ===== */}
+          {step === 3 && (
             <div className="space-y-8">
               {/* Success confirmation */}
               <div className="text-center">
@@ -512,7 +636,7 @@ export default function Enroll() {
                     {
                       num: "2",
                       title: "Get your credit report",
-                      desc: "Sign up for IdentityIQ ($35) so we can review your reports and educate you on your scores.",
+                      desc: "Sign up for IdentityIQ credit monitoring ($35/mo) so we can access your reports and track changes.",
                     },
                     {
                       num: "3",

@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { Lock, Shield, Eye, Trash2, Bell, Globe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default function Privacy() {
   return (
     <div className="flex flex-col">
+      <Helmet>
+        <title>Privacy Policy | Better Credit Partners</title>
+        <meta name="description" content="How Better Credit Partners collects, uses, and protects your personal information. Read our full privacy policy." />
+      </Helmet>
       <section className="py-16 md:py-24 bg-background">
         <div className="max-w-4xl mx-auto px-6 md:px-8">
           <div className="text-center mb-16">
@@ -223,7 +228,7 @@ export default function Privacy() {
                   <p className="text-sm">Better Credit Partners</p>
                   <p className="text-sm">123 Business Ave, Suite 100</p>
                   <p className="text-sm">Miami, FL 33101</p>
-                  <p className="text-sm">Email: privacy@bettercreditpartners.com</p>
+                  <p className="text-sm">Email: support@bettercreditpartners.com</p>
                   <p className="text-sm">Phone: Available to enrolled clients</p>
                 </div>
               </CardContent>

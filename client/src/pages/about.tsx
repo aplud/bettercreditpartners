@@ -1,8 +1,9 @@
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
-import { 
-  Target, 
-  GraduationCap, 
-  Shield, 
+import {
+  Target,
+  GraduationCap,
+  Shield,
   MapPin,
   ArrowRight,
   Check
@@ -41,6 +42,10 @@ const commitments = [
 export default function About() {
   return (
     <div className="flex flex-col">
+      <Helmet>
+        <title>About Better Credit Partners | Credit Education & Disputes</title>
+        <meta name="description" content="Professional credit consulting firm helping clients dispute inaccurate credit report information. CROA and FCRA compliant. Serving 12 states." />
+      </Helmet>
       <section className="py-16 md:py-24 bg-gradient-to-br from-[#060414] via-[#123f56] to-[#060414]">
         <div className="max-w-6xl mx-auto px-6 md:px-8">
           <div className="text-center mb-16">

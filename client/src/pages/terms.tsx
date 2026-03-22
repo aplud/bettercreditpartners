@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { FileText, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,6 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default function Terms() {
   return (
     <div className="flex flex-col">
+      <Helmet>
+        <title>Terms of Service | Better Credit Partners</title>
+        <meta name="description" content="Terms and conditions for Better Credit Partners credit education and dispute assistance services." />
+      </Helmet>
       <section className="py-16 md:py-24 bg-background">
         <div className="max-w-4xl mx-auto px-6 md:px-8">
           <div className="text-center mb-16">
@@ -176,7 +181,7 @@ export default function Terms() {
                   </li>
                 </ul>
                 <p className="text-muted-foreground leading-relaxed">
-                  To cancel, submit a written request to our business address or email info@bettercreditpartners.com.
+                  To cancel, submit a written request to our business address or email support@bettercreditpartners.com.
                 </p>
               </CardContent>
             </Card>
@@ -251,7 +256,7 @@ export default function Terms() {
                   <p className="text-sm">Better Credit Partners</p>
                   <p className="text-sm">123 Business Ave, Suite 100</p>
                   <p className="text-sm">Miami, FL 33101</p>
-                  <p className="text-sm">Email: legal@bettercreditpartners.com</p>
+                  <p className="text-sm">Email: support@bettercreditpartners.com</p>
                   <p className="text-sm">Phone: Available to enrolled clients</p>
                 </div>
               </CardContent>

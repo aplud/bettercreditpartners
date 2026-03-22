@@ -1,8 +1,9 @@
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
-import { 
-  FileSearch, 
-  ClipboardList, 
-  Send, 
+import {
+  FileSearch,
+  ClipboardList,
+  Send,
   BookOpen,
   ArrowRight,
   Info
@@ -63,6 +64,10 @@ const steps = [
 export default function HowItWorks() {
   return (
     <div className="flex flex-col">
+      <Helmet>
+        <title>How Credit Repair Works | Better Credit Partners</title>
+        <meta name="description" content="Learn our 4-step credit repair process: sign up online, get your reports analyzed, we dispute inaccurate items, and track your progress. CROA and FCRA compliant." />
+      </Helmet>
       <section className="py-16 md:py-24 bg-gradient-to-br from-[#060414] via-[#123f56] to-[#060414]">
         <div className="max-w-5xl mx-auto px-6 md:px-8">
           <div className="text-center mb-16">

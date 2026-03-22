@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { 
   FileSearch, 
@@ -77,8 +79,44 @@ const notOffered = [
 ];
 
 export default function Services() {
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "name": "Credit Report Dispute Assistance",
+      "provider": {
+        "@type": "ProfessionalService",
+        "name": "Better Credit Partners"
+      },
+      "description": "Professional credit education and dispute assistance services including credit report analysis, dispute letter preparation, creditor communication, and credit education.",
+      "serviceType": "Credit Repair",
+      "areaServed": "US",
+      "offers": {
+        "@type": "Offer",
+        "price": "129",
+        "priceCurrency": "USD",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "129",
+          "priceCurrency": "USD",
+          "unitText": "month"
+        }
+      }
+    });
+    document.head.appendChild(script);
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+
   return (
     <div className="flex flex-col">
+      <Helmet>
+        <title>Credit Repair Services | Better Credit Partners</title>
+        <meta name="description" content="Credit report analysis, dispute letter preparation, creditor communication, and credit education. FCRA-compliant dispute assistance across all three bureaus." />
+      </Helmet>
       <section className="py-16 md:py-24 bg-gradient-to-br from-[#060414] via-[#123f56] to-[#060414]">
         <div className="max-w-6xl mx-auto px-6 md:px-8">
           <div className="text-center mb-16">

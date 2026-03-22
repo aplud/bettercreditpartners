@@ -1,7 +1,8 @@
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
-import { 
-  Scale, 
-  Shield, 
+import {
+  Scale,
+  Shield,
   FileText,
   AlertTriangle,
   Check
@@ -17,6 +18,10 @@ const tableOfContents = [
 export default function Legal() {
   return (
     <div className="flex flex-col">
+      <Helmet>
+        <title>Legal Disclosures | Better Credit Partners</title>
+        <meta name="description" content="CROA disclosure, state-specific regulations, and consumer rights information for Better Credit Partners credit repair services." />
+      </Helmet>
       <section className="py-16 md:py-24 bg-gradient-to-br from-[#060414] via-[#123f56] to-[#060414]">
         <div className="max-w-6xl mx-auto px-6 md:px-8">
           <div className="text-center mb-16">
@@ -182,7 +187,7 @@ export default function Legal() {
                   <div>
                     <h4 className="font-medium text-white mb-2">How to Cancel</h4>
                     <p className="text-sm text-white/60">
-                      To cancel, contact us in writing at our business address or email us at info@bettercreditpartners.com.
+                      To cancel, contact us in writing at our business address or email us at support@bettercreditpartners.com.
                     </p>
                   </div>
                 </div>

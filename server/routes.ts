@@ -135,9 +135,12 @@ export async function registerRoutes(
         inviteId,
       });
     } catch (error) {
-      console.error("SignNow create-invite error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      console.error("SignNow create-invite error:", errorMessage);
       return res.status(500).json({
-        message: "Failed to create signing session. Please try again.",
+        message: errorMessage.includes("SIGNNOW_API_KEY")
+          ? "Signing service is not configured. Please contact support@bettercreditpartners.com."
+          : "Failed to create signing session. Please try again.",
       });
     }
   });
