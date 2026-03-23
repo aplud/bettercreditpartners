@@ -371,40 +371,28 @@ export default function Enroll() {
                 {/* Not eligible - waitlist */}
                 {stateRejected && (
                   <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 mb-4">
                       <MapPin className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
                         <h3 className="font-semibold text-white text-sm mb-1">
                           We're not in your state yet, but we're expanding.
                         </h3>
-                        <p className="text-xs text-white/60 mb-3">
-                          Enter your email and we'll notify you as soon as we launch in {ALL_STATES.find((s) => s.value === selectedState)?.label}.
+                        <p className="text-xs text-white/60">
+                          Join our waitlist and we'll notify you as soon as we launch in {ALL_STATES.find((s) => s.value === selectedState)?.label}.
                         </p>
-                        <div className="flex gap-2">
-                          <input
-                            type="email"
-                            placeholder="your@email.com"
-                            value={waitlistEmail}
-                            onChange={(e) => setWaitlistEmail(e.target.value)}
-                            className="flex-1 h-10 px-3 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-[#52ceff]/50"
-                          />
-                          <Button
-                            size="sm"
-                            className="bg-[#52ceff] text-[#060414] font-bold border-0 h-10 px-4"
-                            onClick={() => {
-                              if (waitlistEmail) {
-                                setWaitlistSubmitted(true);
-                              }
-                            }}
-                            disabled={waitlistSubmitted}
-                          >
-                            {waitlistSubmitted ? "Added!" : "Notify Me"}
-                          </Button>
-                        </div>
-                        {waitlistSubmitted && (
-                          <p className="text-xs text-emerald-400 mt-2">You're on the list. We'll reach out when we expand to your state.</p>
-                        )}
                       </div>
+                    </div>
+                    <div className="rounded-xl overflow-hidden bg-white" style={{ minHeight: "400px" }}>
+                      <iframe
+                        src="https://form.typeform.com/to/EXhQK2lJ"
+                        width="100%"
+                        height="400"
+                        frameBorder="0"
+                        allow="camera; microphone; autoplay; encrypted-media"
+                        title="Waitlist Signup"
+                        className="block w-full"
+                        style={{ minHeight: "400px" }}
+                      />
                     </div>
                   </div>
                 )}
