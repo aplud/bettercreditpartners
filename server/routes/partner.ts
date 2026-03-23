@@ -6,6 +6,7 @@ import { createSigningInvite, checkDocumentStatus } from "../services/signnow";
 import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { markDirty } from "../services/google-sheets";
 
 export const partnerRouter = Router();
 
@@ -100,6 +101,8 @@ partnerRouter.post("/register", async (req, res, next) => {
       }
     }
 
+    markDirty("partners");
+
     // Step 6: Auto-login
     req.login(user, (err) => {
       if (err) return next(err);
@@ -143,6 +146,7 @@ partnerRouter.get("/agreement-status", requireAuth, requireRole("partner"), asyn
       if (isSigned) {
         await storage.updateAgreementStatus(agreement.id, "signed", new Date());
         await storage.updatePartnerStatus(partner.id, "active");
+        markDirty("partners");
         return res.json({ status: "signed", signed: true });
       }
     } catch (err) {
@@ -201,6 +205,7 @@ partnerRouter.patch("/me", requireAuth, requireRole("partner"), async (req, res)
       .where(eq(partners.id, partner.id))
       .returning();
 
+    markDirty("partners");
     return res.json(updated);
   } catch (error) {
     console.error("Error updating partner profile:", error);
@@ -268,6 +273,7 @@ partnerRouter.post("/leads", requireAuth, requireRole("partner"), async (req, re
       status: "new",
     });
 
+    markDirty("leads");
     return res.status(201).json(lead);
   } catch (error) {
     console.error("Error creating lead:", error);

@@ -4,6 +4,7 @@ import { storage } from "../storage";
 import { db } from "../db";
 import { commissions, partners, leads, referralPrograms } from "@shared/schema";
 import { eq, and, sql, count } from "drizzle-orm";
+import { markDirty, fullSync, getSyncStatus } from "../services/google-sheets";
 
 export const adminRouter = Router();
 
@@ -166,6 +167,7 @@ adminRouter.post("/leads/:id/status", async (req, res) => {
       details: `Status changed: ${lead.status} -> ${status}`,
     });
 
+    markDirty("leads");
     return res.json(updated);
   } catch (error) {
     console.error("Error updating lead status:", error);
@@ -230,6 +232,8 @@ adminRouter.post("/leads/:id/convert", async (req, res) => {
       details: `Lead converted. Commission ${commission.id} created for $${program.commissionAmount} with ${program.retentionDays}-day retention.`,
     });
 
+    markDirty("leads");
+    markDirty("commissions");
     return res.json({ lead: updated, commission });
   } catch (error) {
     console.error("Error converting lead:", error);
@@ -270,6 +274,7 @@ adminRouter.post("/commissions/:id/void", async (req, res) => {
       details: `Commission voided. Reason: ${reason}`,
     });
 
+    markDirty("commissions");
     return res.json(updated);
   } catch (error) {
     console.error("Error voiding commission:", error);
@@ -431,6 +436,7 @@ adminRouter.patch("/partners/:id/status", async (req, res) => {
       details: `Partner status changed to "${status}"`,
     });
 
+    markDirty("partners");
     return res.json(updated);
   } catch (error) {
     console.error("Error updating partner status:", error);
@@ -604,6 +610,7 @@ adminRouter.post("/payouts/generate", async (req, res) => {
       details: `Generated payout for ${quarter}: ${partnerCount} partners, $${totalAmount} total, ${eligibleCommissions.length} commissions`,
     });
 
+    markDirty("commissions");
     const csv = csvLines.join("\n");
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", `attachment; filename="payout-${quarter}.csv"`);
@@ -643,5 +650,28 @@ adminRouter.get("/audit-log", async (req, res) => {
   } catch (error) {
     console.error("Error fetching audit log:", error);
     return res.status(500).json({ message: "Failed to fetch audit log" });
+  }
+});
+
+// ── Phase 7: Google Sheets Batched Sync ─────────────────────────────────────
+
+// Trigger a full sync manually
+adminRouter.post("/sheets/sync", async (_req, res) => {
+  try {
+    await fullSync();
+    return res.json(getSyncStatus());
+  } catch (error) {
+    console.error("Error triggering sheets sync:", error);
+    return res.status(500).json({ message: "Failed to trigger sync" });
+  }
+});
+
+// Get sync status
+adminRouter.get("/sheets/status", async (_req, res) => {
+  try {
+    return res.json(getSyncStatus());
+  } catch (error) {
+    console.error("Error fetching sync status:", error);
+    return res.status(500).json({ message: "Failed to fetch sync status" });
   }
 });

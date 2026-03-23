@@ -7,6 +7,7 @@ import { db } from "./db";
 import { commissions } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { storage } from "./storage";
+import { startSyncInterval } from "./services/google-sheets";
 
 const app = express();
 const httpServer = createServer(app);
@@ -98,6 +99,9 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+
+      // Google Sheets batched sync
+      startSyncInterval();
 
       // Commission retention check - every 6 hours
       setInterval(async () => {
