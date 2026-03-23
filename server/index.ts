@@ -3,6 +3,10 @@ import { registerRoutes } from "./routes";
 import { setupAuth } from "./auth";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { db } from "./db";
+import { commissions } from "@shared/schema";
+import { eq, and, sql } from "drizzle-orm";
+import { storage } from "./storage";
 
 const app = express();
 const httpServer = createServer(app);
@@ -94,6 +98,33 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+
+      // Commission retention check - every 6 hours
+      setInterval(async () => {
+        try {
+          const eligibleCommissions = await db
+            .select()
+            .from(commissions)
+            .where(
+              and(
+                eq(commissions.status, "pending_retention"),
+                sql`${commissions.createdAt} + (${commissions.retentionDays} || ' days')::interval <= now()`,
+              ),
+            );
+
+          let transitioned = 0;
+          for (const commission of eligibleCommissions) {
+            await storage.transitionCommissionStatus(commission.id, "eligible");
+            transitioned++;
+          }
+
+          if (transitioned > 0) {
+            log(`Retention check: ${transitioned} commission(s) transitioned to eligible`, "cron");
+          }
+        } catch (err) {
+          console.error("Retention check failed:", err);
+        }
+      }, 6 * 60 * 60 * 1000);
     },
   );
 })();

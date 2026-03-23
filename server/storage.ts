@@ -36,6 +36,7 @@ interface AuditLogFilters {
   userId?: string;
   entityType?: string;
   entityId?: string;
+  action?: string;
 }
 
 // ─── IStorage Interface ──────────────────────────────────────────────────────
@@ -476,6 +477,9 @@ export class DatabaseStorage implements IStorage {
     }
     if (filters?.entityId) {
       conditions.push(eq(auditLog.entityId, filters.entityId));
+    }
+    if (filters?.action) {
+      conditions.push(eq(auditLog.action, filters.action));
     }
 
     if (conditions.length > 0) {

@@ -208,6 +208,27 @@ partnerRouter.patch("/me", requireAuth, requireRole("partner"), async (req, res)
   }
 });
 
+// Get partner's own commissions with program details
+partnerRouter.get("/commissions", requireAuth, requireRole("partner"), async (req, res) => {
+  try {
+    const partner = await storage.getPartnerByUserId(req.user!.id);
+    if (!partner) {
+      return res.status(404).json({ message: "Partner profile not found" });
+    }
+
+    const partnerCommissions = await storage.getCommissionsByPartner(partner.id);
+    const program = await storage.getProgram(partner.programId);
+
+    return res.json({
+      commissions: partnerCommissions,
+      program,
+    });
+  } catch (error) {
+    console.error("Error fetching partner commissions:", error);
+    return res.status(500).json({ message: "Failed to fetch commissions" });
+  }
+});
+
 // ── Lead Management ─────────────────────────────────────────────────────────
 
 // Submit a lead manually
