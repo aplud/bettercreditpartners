@@ -29,6 +29,16 @@ import Commissions from "@/pages/partner/commissions";
 import ReferralLink from "@/pages/partner/referral-link";
 import Agreement from "@/pages/partner/agreement";
 import Profile from "@/pages/partner/profile";
+import AdminLayout from "@/pages/admin/admin-layout";
+import AdminDashboard from "@/pages/admin/dashboard";
+import AdminPrograms from "@/pages/admin/programs";
+import AdminPartners from "@/pages/admin/partners";
+import AdminPartnerDetail from "@/pages/admin/partner-detail";
+import AdminLeads from "@/pages/admin/leads";
+import AdminCommissions from "@/pages/admin/commissions";
+import AdminPayouts from "@/pages/admin/payouts";
+import AdminSheetsSync from "@/pages/admin/sheets-sync";
+import AdminAuditLog from "@/pages/admin/audit-log";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -71,6 +81,25 @@ function Router() {
               <Route path="/partner/profile" component={Profile} />
             </Switch>
           </PartnerLayout>
+        </ProtectedRoute>
+      </Route>
+
+      {/* Admin routes */}
+      <Route path="/admin/:rest*">
+        <ProtectedRoute role="admin">
+          <AdminLayout>
+            <Switch>
+              <Route path="/admin" component={AdminDashboard} />
+              <Route path="/admin/programs" component={AdminPrograms} />
+              <Route path="/admin/partners/:id" component={AdminPartnerDetail} />
+              <Route path="/admin/partners" component={AdminPartners} />
+              <Route path="/admin/leads" component={AdminLeads} />
+              <Route path="/admin/commissions" component={AdminCommissions} />
+              <Route path="/admin/payouts" component={AdminPayouts} />
+              <Route path="/admin/sheets-sync" component={AdminSheetsSync} />
+              <Route path="/admin/audit-log" component={AdminAuditLog} />
+            </Switch>
+          </AdminLayout>
         </ProtectedRoute>
       </Route>
 
