@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, integer, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -141,7 +141,9 @@ export const leads = pgTable("leads", {
   retentionStartDate: timestamp("retention_start_date"),
   attributedAt: timestamp("attributed_at"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("leads_email_idx").on(table.email),
+]);
 
 export const insertLeadSchema = createInsertSchema(leads).omit({
   id: true,
