@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, FileText, TrendingUp, DollarSign } from "lucide-react";
+import { formatCurrency } from "@/lib/format";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,7 +51,7 @@ export default function AdminDashboard() {
       title: "Commissions Pending",
       value: stats?.commissionsPending ?? 0,
       icon: DollarSign,
-      format: (v: number) => `$${(v / 100).toFixed(2)}`,
+      format: (v: number) => formatCurrency(v),
     },
   ];
 
@@ -80,12 +81,16 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {stats?.leadsByStatus && stats.leadsByStatus.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Leads by Status</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader>
+          <CardTitle>Leads by Status</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!stats?.leadsByStatus || stats.leadsByStatus.length === 0 || stats.leadsByStatus.every((d) => d.count === 0) ? (
+            <div className="flex items-center justify-center h-[300px]">
+              <p className="text-muted-foreground text-sm">No data yet</p>
+            </div>
+          ) : (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={stats.leadsByStatus}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -95,9 +100,9 @@ export default function AdminDashboard() {
                 <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

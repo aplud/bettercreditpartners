@@ -4,14 +4,41 @@ import { storage } from "./storage";
 import { insertContactMessageSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { createSigningInvite, checkDocumentStatus } from "./services/signnow";
+import { requireAuth } from "./auth";
 import { adminRouter } from "./routes/admin";
 import { partnerRouter } from "./routes/partner";
 import { publicRouter } from "./routes/public";
+import { db, hasDatabase } from "./db";
+import { sql } from "drizzle-orm";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Health check
+  app.get("/api/health", async (_req, res) => {
+    const health: Record<string, any> = {
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    };
+
+    // Check database
+    try {
+      if (hasDatabase && db) {
+        await db.execute(sql`SELECT 1`);
+        health.database = "connected";
+      } else {
+        health.database = "memory-storage";
+      }
+    } catch (e) {
+      health.database = "error";
+      health.status = "degraded";
+    }
+
+    res.json(health);
+  });
+
   // Mount sub-routers
   app.use("/api/admin", adminRouter);
   app.use("/api/partners", partnerRouter);
@@ -44,10 +71,11 @@ export async function registerRoutes(
   });
 
   // SignNow: Create embedded signing invite
-  app.post("/api/signnow/create-invite", async (req, res) => {
+  app.post("/api/signnow/create-invite", requireAuth, async (req, res) => {
     try {
+      const templateId = process.env.SIGNNOW_TEMPLATE_ID || "bda51151da5f43a0be50bc68a338efea38387d37";
       const result = await createSigningInvite(
-        "bda51151da5f43a0be50bc68a338efea38387d37",
+        templateId,
         `CROA Disclosure - ${Date.now()}`,
       );
       return res.status(200).json(result);
@@ -63,7 +91,7 @@ export async function registerRoutes(
   });
 
   // SignNow: Check document signing status
-  app.get("/api/signnow/status/:documentId", async (req, res) => {
+  app.get("/api/signnow/status/:documentId", requireAuth, async (req, res) => {
     try {
       const completed = await checkDocumentStatus(req.params.documentId);
       return res.status(200).json({ completed });

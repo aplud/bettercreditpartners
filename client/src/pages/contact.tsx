@@ -90,7 +90,7 @@ export default function Contact() {
                         <div className="text-sm text-white/80" data-testid={`text-info-value-${index}`}>
                           {info.value}
                         </div>
-                        <div className="text-xs text-white/50" data-testid={`text-info-subtext-${index}`}>
+                        <div className="text-xs text-white/70" data-testid={`text-info-subtext-${index}`}>
                           {info.subtext}
                         </div>
                       </div>

@@ -1,13 +1,40 @@
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
 import { registerRoutes } from "./routes";
 import { setupAuth } from "./auth";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { db } from "./db";
+import { db as _db, hasDatabase } from "./db";
+const db = _db!;
 import { commissions } from "@shared/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { storage } from "./storage";
 import { startSyncInterval } from "./services/google-sheets";
+
+function validateEnvironment() {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (isProduction) {
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL is required in production");
+    }
+    if (!process.env.SESSION_SECRET) {
+      throw new Error("SESSION_SECRET is required in production");
+    }
+  }
+
+  if (!process.env.SIGNNOW_API_KEY) {
+    console.warn("[startup] SIGNNOW_API_KEY not set — document signing will be disabled");
+  }
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[startup] RESEND_API_KEY not set — email notifications will be disabled");
+  }
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    console.warn("[startup] GOOGLE_SERVICE_ACCOUNT_JSON not set — Sheets sync will be disabled");
+  }
+}
+
+validateEnvironment();
 
 const app = express();
 const httpServer = createServer(app);
@@ -18,15 +45,32 @@ declare module "http" {
   }
 }
 
+const isProduction = process.env.NODE_ENV === "production";
+app.use(helmet({
+  contentSecurityPolicy: isProduction ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      fontSrc: ["'self'", "data:"],
+      frameSrc: ["'self'", "https://*.signnow.com"],
+      connectSrc: ["'self'", "https://*.signnow.com"],
+    },
+  } : false, // Vite dev server requires eval/inline scripts
+  crossOriginEmbedderPolicy: false, // Allow iframes (SignNow)
+}));
+
 app.use(
   express.json({
+    limit: "10kb",
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
   }),
 );
 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: "10kb" }));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -53,11 +97,7 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
+      const logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       log(logLine);
     }
   });
@@ -71,10 +111,12 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const message = process.env.NODE_ENV === "production"
+      ? "Internal Server Error"
+      : err.message || "Internal Server Error";
 
+    console.error("Unhandled error:", err);
     res.status(status).json({ message });
-    throw err;
   });
 
   // importantly only setup vite in development and after
@@ -100,35 +142,39 @@ app.use((req, res, next) => {
     () => {
       log(`serving on port ${port}`);
 
-      // Google Sheets batched sync
-      startSyncInterval();
+      if (hasDatabase) {
+        // Google Sheets batched sync
+        startSyncInterval();
 
-      // Commission retention check - every 6 hours
-      setInterval(async () => {
-        try {
-          const eligibleCommissions = await db
-            .select()
-            .from(commissions)
-            .where(
-              and(
-                eq(commissions.status, "pending_retention"),
-                sql`${commissions.createdAt} + (${commissions.retentionDays} || ' days')::interval <= now()`,
-              ),
-            );
+        // Commission retention check - every 6 hours
+        setInterval(async () => {
+          try {
+            const eligibleCommissions = await db
+              .select()
+              .from(commissions)
+              .where(
+                and(
+                  eq(commissions.status, "pending_retention"),
+                  sql`${commissions.createdAt} + (${commissions.retentionDays} || ' days')::interval <= now()`,
+                ),
+              );
 
-          let transitioned = 0;
-          for (const commission of eligibleCommissions) {
-            await storage.transitionCommissionStatus(commission.id, "eligible");
-            transitioned++;
+            let transitioned = 0;
+            for (const commission of eligibleCommissions) {
+              await storage.transitionCommissionStatus(commission.id, "eligible");
+              transitioned++;
+            }
+
+            if (transitioned > 0) {
+              log(`Retention check: ${transitioned} commission(s) transitioned to eligible`, "cron");
+            }
+          } catch (err) {
+            console.error("Retention check failed:", err);
           }
-
-          if (transitioned > 0) {
-            log(`Retention check: ${transitioned} commission(s) transitioned to eligible`, "cron");
-          }
-        } catch (err) {
-          console.error("Retention check failed:", err);
-        }
-      }, 6 * 60 * 60 * 1000);
+        }, 6 * 60 * 60 * 1000);
+      } else {
+        log("No DATABASE_URL — skipping Sheets sync and retention cron", "startup");
+      }
     },
   );
 })();

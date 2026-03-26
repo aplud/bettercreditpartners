@@ -14,6 +14,9 @@ import {
   CreditCard,
   Home as HomeIcon,
   Shield,
+  Users,
+  DollarSign,
+  Handshake,
 } from "lucide-react";
 import { LoanCalculator } from "@/components/loan-calculator";
 
@@ -181,7 +184,7 @@ export default function Home() {
                 </Link>
               </div>
 
-              <p className="mt-6 text-sm text-white/50">
+              <p className="mt-6 text-sm text-white/70">
                 No setup fee · $129/mo billed after first month · Cancel anytime
                 · Results vary; no outcome is guaranteed.
               </p>
@@ -244,7 +247,7 @@ export default function Home() {
       {/* Trust Signals */}
       <section className="py-8">
         <div className="max-w-6xl mx-auto px-6 md:px-8">
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-white/50">
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-white/70">
             <span className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-[#409645]" />
               CROA & FCRA Compliant
@@ -302,7 +305,7 @@ export default function Home() {
             })}
           </div>
 
-          <p className="mt-4 text-xs text-white/40">
+          <p className="mt-4 text-xs text-white/60">
             APR data based on 2024 market rates. Sources: MyFICO, Federal
             Reserve G.19, Bankrate.
           </p>
@@ -369,6 +372,67 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Partner Referral Program Section */}
+      <section id="partner-program" className="py-12 md:py-16">
+        <div className="max-w-6xl mx-auto px-6 md:px-8">
+          <div className="rounded-2xl bg-gradient-to-br from-[#123f56]/40 to-[#0a2a3c]/40 border border-[#52ceff]/20 p-8 md:p-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              <div>
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#c0d353]/20 text-[#c0d353] text-sm font-semibold mb-4">
+                  <Handshake className="h-4 w-4" />
+                  Partner Program
+                </span>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                  Earn $50 for every referral
+                </h2>
+                <p className="text-white/60 mb-6">
+                  Know someone who needs credit repair? Join our referral partner
+                  program and earn commissions for every client you send our way.
+                  Simple sign-up, real-time tracking, and quarterly payouts.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <Link href="/partner-program">
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-[#c0d353] to-[#52ceff] text-[#060414] font-bold border-0"
+                    >
+                      Learn More
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                  <Link href="/login">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="bg-white/5 border-white/20 text-white"
+                    >
+                      Partner Login
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                  <DollarSign className="h-8 w-8 text-[#c0d353] mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-white">$50</p>
+                  <p className="text-xs text-white/70 mt-1">Per Conversion</p>
+                </div>
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                  <Users className="h-8 w-8 text-[#52ceff] mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-white">Free</p>
+                  <p className="text-xs text-white/70 mt-1">To Join</p>
+                </div>
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+                  <Clock className="h-8 w-8 text-[#409645] mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-white">Quarterly</p>
+                  <p className="text-xs text-white/70 mt-1">Payouts</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ Section */}
       <section id="faq" className="py-12 md:py-16">
         <div className="max-w-6xl mx-auto px-6 md:px-8">
@@ -397,7 +461,7 @@ export default function Home() {
                     {faq.q}
                   </span>
                   <ChevronDown
-                    className={`h-5 w-5 text-white/50 flex-shrink-0 transition-transform duration-200 ${
+                    className={`h-5 w-5 text-white/70 flex-shrink-0 transition-transform duration-200 ${
                       openFaq === index ? "rotate-180" : ""
                     }`}
                   />
@@ -442,7 +506,7 @@ export default function Home() {
               <p className="font-bold text-white text-lg mb-1">
                 Credit Monitoring
               </p>
-              <p className="text-3xl font-bold text-white mb-2">$35<span className="text-base text-white/50">/mo</span></p>
+              <p className="text-3xl font-bold text-white mb-2">$35<span className="text-base text-white/70">/mo</span></p>
               <p className="text-sm text-white/60">
                 Monthly monitoring through IdentityIQ so we can track your
                 reports and build your dispute strategy.
@@ -456,7 +520,7 @@ export default function Home() {
                 Monthly Service
               </p>
               <p className="text-3xl font-bold text-white mb-2">
-                $129<span className="text-base text-white/50">/mo</span>
+                $129<span className="text-base text-white/70">/mo</span>
               </p>
               <p className="text-sm text-white/60">
                 We dispute items on your behalf. Cancel anytime.
@@ -514,7 +578,7 @@ export default function Home() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <p className="mt-6 text-sm text-white/40">
+            <p className="mt-6 text-sm text-white/60">
               No setup fee · $129/mo billed after first month · Cancel anytime
             </p>
           </div>

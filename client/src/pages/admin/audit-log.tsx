@@ -102,30 +102,32 @@ export default function AuditLog() {
               No audit log entries found.
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Entity Type</TableHead>
-                  <TableHead>Entity ID</TableHead>
-                  <TableHead>Details</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {entries.map((entry) => (
-                  <TableRow key={entry.id}>
-                    <TableCell>{new Date(entry.createdAt).toLocaleString()}</TableCell>
-                    <TableCell>{entry.username ?? entry.userId ?? "system"}</TableCell>
-                    <TableCell className="font-medium">{entry.action}</TableCell>
-                    <TableCell>{entry.entityType}</TableCell>
-                    <TableCell className="font-mono text-xs">{entry.entityId}</TableCell>
-                    <TableCell className="max-w-xs truncate">{entry.details ?? "-"}</TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Entity Type</TableHead>
+                    <TableHead>Entity ID</TableHead>
+                    <TableHead>Details</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {entries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell>{new Date(entry.createdAt).toLocaleString()}</TableCell>
+                      <TableCell>{entry.username ?? entry.userId ?? "system"}</TableCell>
+                      <TableCell className="font-medium">{entry.action}</TableCell>
+                      <TableCell>{entry.entityType}</TableCell>
+                      <TableCell className="font-mono text-xs">{entry.entityId}</TableCell>
+                      <TableCell className="max-w-xs truncate">{entry.details ?? "-"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

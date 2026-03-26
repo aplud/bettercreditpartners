@@ -18,12 +18,18 @@ interface PartnerProfile {
   companyName: string;
 }
 
+interface MeResponse {
+  partner: PartnerProfile;
+  program: unknown;
+}
+
 export default function ReferralLink() {
   const [copied, setCopied] = useState(false);
 
-  const { data: profile, isLoading } = useQuery<PartnerProfile>({
+  const { data: meData, isLoading, isError, refetch } = useQuery<MeResponse>({
     queryKey: ["/api/partners/me"],
   });
+  const profile = meData?.partner;
 
   const referralUrl = profile
     ? `${window.location.origin}/ref/${profile.referralCode}`
@@ -34,6 +40,15 @@ export default function ReferralLink() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (isError) {
+    return (
+      <Card className="p-6 text-center">
+        <p className="text-red-400 mb-4">Failed to load data. Please try again.</p>
+        <Button variant="outline" onClick={() => refetch()}>Try Again</Button>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-lg">

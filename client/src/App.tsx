@@ -17,6 +17,7 @@ import Enroll from "@/pages/enroll";
 import Legal from "@/pages/legal";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
+import PartnerProgram from "@/pages/partner-program";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "@/components/protected-route";
 import Login from "@/pages/auth/login";
@@ -39,6 +40,7 @@ import AdminCommissions from "@/pages/admin/commissions";
 import AdminPayouts from "@/pages/admin/payouts";
 import AdminSheetsSync from "@/pages/admin/sheets-sync";
 import AdminAuditLog from "@/pages/admin/audit-log";
+import AdminAccounts from "@/pages/admin/admin-accounts";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -48,7 +50,52 @@ function ScrollToTop() {
   return null;
 }
 
+function PartnerRoutes() {
+  return (
+    <ProtectedRoute role="partner">
+      <PartnerLayout>
+        <Switch>
+          <Route path="/partner" component={PartnerDashboard} />
+          <Route path="/partner/submit-lead" component={SubmitLead} />
+          <Route path="/partner/leads" component={MyLeads} />
+          <Route path="/partner/commissions" component={Commissions} />
+          <Route path="/partner/referral-link" component={ReferralLink} />
+          <Route path="/partner/agreement" component={Agreement} />
+          <Route path="/partner/profile" component={Profile} />
+        </Switch>
+      </PartnerLayout>
+    </ProtectedRoute>
+  );
+}
+
+function AdminRoutes() {
+  return (
+    <ProtectedRoute role="admin">
+      <AdminLayout>
+        <Switch>
+          <Route path="/admin" component={AdminDashboard} />
+          <Route path="/admin/programs" component={AdminPrograms} />
+          <Route path="/admin/partners/:id" component={AdminPartnerDetail} />
+          <Route path="/admin/partners" component={AdminPartners} />
+          <Route path="/admin/leads" component={AdminLeads} />
+          <Route path="/admin/commissions" component={AdminCommissions} />
+          <Route path="/admin/payouts" component={AdminPayouts} />
+          <Route path="/admin/accounts" component={AdminAccounts} />
+          <Route path="/admin/sheets-sync" component={AdminSheetsSync} />
+          <Route path="/admin/audit-log" component={AdminAuditLog} />
+        </Switch>
+      </AdminLayout>
+    </ProtectedRoute>
+  );
+}
+
 function Router() {
+  const [location] = useLocation();
+
+  // Portal routes rendered outside the main Switch to avoid prefix-matching conflicts
+  if (location.startsWith("/partner/") || location === "/partner") return <PartnerRoutes />;
+  if (location.startsWith("/admin")) return <AdminRoutes />;
+
   return (
     <Switch>
       {/* Public routes */}
@@ -62,46 +109,11 @@ function Router() {
       <Route path="/legal" component={Legal} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
+      <Route path="/partner-program" component={PartnerProgram} />
 
       {/* Auth routes */}
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
-
-      {/* Partner routes */}
-      <Route path="/partner/:rest*">
-        <ProtectedRoute role="partner">
-          <PartnerLayout>
-            <Switch>
-              <Route path="/partner" component={PartnerDashboard} />
-              <Route path="/partner/submit-lead" component={SubmitLead} />
-              <Route path="/partner/leads" component={MyLeads} />
-              <Route path="/partner/commissions" component={Commissions} />
-              <Route path="/partner/referral-link" component={ReferralLink} />
-              <Route path="/partner/agreement" component={Agreement} />
-              <Route path="/partner/profile" component={Profile} />
-            </Switch>
-          </PartnerLayout>
-        </ProtectedRoute>
-      </Route>
-
-      {/* Admin routes */}
-      <Route path="/admin/:rest*">
-        <ProtectedRoute role="admin">
-          <AdminLayout>
-            <Switch>
-              <Route path="/admin" component={AdminDashboard} />
-              <Route path="/admin/programs" component={AdminPrograms} />
-              <Route path="/admin/partners/:id" component={AdminPartnerDetail} />
-              <Route path="/admin/partners" component={AdminPartners} />
-              <Route path="/admin/leads" component={AdminLeads} />
-              <Route path="/admin/commissions" component={AdminCommissions} />
-              <Route path="/admin/payouts" component={AdminPayouts} />
-              <Route path="/admin/sheets-sync" component={AdminSheetsSync} />
-              <Route path="/admin/audit-log" component={AdminAuditLog} />
-            </Switch>
-          </AdminLayout>
-        </ProtectedRoute>
-      </Route>
 
       <Route component={NotFound} />
     </Switch>
@@ -111,7 +123,8 @@ function Router() {
 function App() {
   const [location] = useLocation();
   const isPortalRoute =
-    location.startsWith("/partner") ||
+    location.startsWith("/partner/") ||
+    location === "/partner" ||
     location.startsWith("/admin") ||
     location === "/login" ||
     location === "/register";

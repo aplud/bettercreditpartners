@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 const leadSchema = z.object({
   contactName: z.string().min(1, "Contact name is required"),
@@ -122,6 +123,7 @@ export default function SubmitLead() {
               className="w-full"
               disabled={submitMutation.isPending}
             >
+              {submitMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {submitMutation.isPending ? "Submitting..." : "Submit Lead"}
             </Button>
           </CardContent>

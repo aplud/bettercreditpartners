@@ -23,12 +23,14 @@ import {
   FileCheck,
   User,
   LogOut,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Separator } from "@/components/ui/separator";
+import bcpLogo from "@assets/BCP-ISOLOGO_1768516740168.png";
 
 const navItems = [
   { label: "Dashboard", href: "/partner", icon: LayoutDashboard },
@@ -59,9 +61,7 @@ export default function PartnerLayout({
       <Sidebar collapsible="icon">
         <SidebarHeader className="border-b">
           <div className="flex items-center gap-2 px-2 py-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
-              BCP
-            </div>
+            <img src={bcpLogo} alt="BCP" className="h-8 w-8 object-contain" />
             <span className="font-semibold text-sm group-data-[collapsible=icon]:hidden">
               BCP Partners
             </span>
@@ -91,6 +91,14 @@ export default function PartnerLayout({
         </SidebarContent>
         <SidebarFooter className="border-t">
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Back to Website">
+                <a href="/">
+                  <ExternalLink />
+                  <span>Back to Website</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton onClick={handleLogout} tooltip="Sign Out">
                 <LogOut />

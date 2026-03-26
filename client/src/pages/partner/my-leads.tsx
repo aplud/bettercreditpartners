@@ -10,6 +10,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
+import { formatDate } from "@/lib/format";
 
 interface Lead {
   id: string;
@@ -29,9 +32,18 @@ const statusColors: Record<string, string> = {
 };
 
 export default function MyLeads() {
-  const { data: leads, isLoading } = useQuery<Lead[]>({
+  const { data: leads, isLoading, isError, refetch } = useQuery<Lead[]>({
     queryKey: ["/api/partners/leads"],
   });
+
+  if (isError) {
+    return (
+      <Card className="p-6 text-center">
+        <p className="text-red-400 mb-4">Failed to load data. Please try again.</p>
+        <Button variant="outline" onClick={() => refetch()}>Try Again</Button>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -49,45 +61,52 @@ export default function MyLeads() {
               ))}
             </div>
           ) : !leads || leads.length === 0 ? (
-            <p className="text-muted-foreground text-sm py-8 text-center">
-              No leads yet. Submit your first lead to get started.
-            </p>
+            <div className="py-8 text-center">
+              <p className="text-muted-foreground text-sm mb-4">
+                No leads yet. Submit your first lead to get started.
+              </p>
+              <Link href="/partner/submit-lead">
+                <Button>Submit Your First Lead</Button>
+              </Link>
+            </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Contact Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {leads.map((lead) => (
-                  <TableRow key={lead.id}>
-                    <TableCell className="font-medium">
-                      {lead.contactName}
-                    </TableCell>
-                    <TableCell>{lead.email}</TableCell>
-                    <TableCell>{lead.phone}</TableCell>
-                    <TableCell>{lead.source ?? "manual"}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={statusColors[lead.status] ?? ""}
-                      >
-                        {lead.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(lead.createdAt).toLocaleDateString()}
-                    </TableCell>
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+              <Table className="min-w-[600px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Contact Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {leads.map((lead) => (
+                    <TableRow key={lead.id}>
+                      <TableCell className="font-medium">
+                        {lead.contactName}
+                      </TableCell>
+                      <TableCell>{lead.email}</TableCell>
+                      <TableCell>{lead.phone}</TableCell>
+                      <TableCell>{lead.source ?? "manual"}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={statusColors[lead.status] ?? ""}
+                        >
+                          {lead.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {formatDate(lead.createdAt)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -1,14 +1,21 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { requireAuth, requireRole, hashPassword } from "../auth";
 import { storage } from "../storage";
 import { randomBytes } from "crypto";
 import { createSigningInvite, checkDocumentStatus } from "../services/signnow";
-import { db } from "../db";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
 import { markDirty } from "../services/google-sheets";
+import { sendPartnerWelcome, sendNewLeadAlert } from "../services/email";
 
 export const partnerRouter = Router();
+
+const partnerRegisterLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { message: "Too many registration attempts, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 function generateReferralCode(): string {
   return randomBytes(5).toString("hex").toUpperCase(); // 10-char hex
@@ -16,7 +23,7 @@ function generateReferralCode(): string {
 
 // ── Public: Partner Registration ────────────────────────────────────────────
 
-partnerRouter.post("/register", async (req, res, next) => {
+partnerRouter.post("/register", partnerRegisterLimiter, async (req, res, next) => {
   try {
     const {
       username,
@@ -31,16 +38,26 @@ partnerRouter.post("/register", async (req, res, next) => {
     } = req.body;
 
     // Validate required fields
-    if (!username || !password || !companyName || !contactName || !email || !phone || !programId || !paymentMethod) {
+    if (!username || !password || !companyName || !contactName || !email || !phone || !paymentMethod) {
       return res.status(400).json({
-        message: "username, password, companyName, contactName, email, phone, programId, and paymentMethod are required",
+        message: "username, password, companyName, contactName, email, phone, and paymentMethod are required",
       });
     }
 
-    // Verify program exists and is active
-    const program = await storage.getProgram(programId);
-    if (!program || !program.isActive) {
-      return res.status(400).json({ message: "Invalid or inactive program" });
+    // Auto-assign default program if not specified
+    let program;
+    if (programId) {
+      program = await storage.getProgram(programId);
+      if (!program || !program.isActive) {
+        return res.status(400).json({ message: "Invalid or inactive program" });
+      }
+    } else {
+      // Assign the first active program
+      const programs = await storage.getPrograms();
+      program = programs.find((p) => p.isActive);
+      if (!program) {
+        return res.status(500).json({ message: "No active referral program available" });
+      }
     }
 
     // Check if username already taken
@@ -52,7 +69,7 @@ partnerRouter.post("/register", async (req, res, next) => {
     // Step 1: Create user with role "partner"
     const hashedPassword = hashPassword(password);
     const user = await storage.createUser({ username, password: hashedPassword });
-    await db.update(users).set({ role: "partner" }).where(eq(users.id, user.id));
+    await storage.updateUser(user.id, { role: "partner" });
     user.role = "partner";
 
     // Step 2: Generate unique referral code
@@ -102,6 +119,9 @@ partnerRouter.post("/register", async (req, res, next) => {
     }
 
     markDirty("partners");
+
+    // Fire-and-forget welcome email
+    sendPartnerWelcome(contactName, email).catch(console.error);
 
     // Step 6: Auto-login
     req.login(user, (err) => {
@@ -160,6 +180,48 @@ partnerRouter.get("/agreement-status", requireAuth, requireRole("partner"), asyn
   }
 });
 
+// Generate a signing link for the partner's agreement
+partnerRouter.post("/agreement-signing-link", requireAuth, requireRole("partner"), async (req, res) => {
+  try {
+    const partner = await storage.getPartnerByUserId(req.user!.id);
+    if (!partner) {
+      return res.status(404).json({ message: "Partner profile not found" });
+    }
+
+    const program = await storage.getProgram(partner.programId);
+    if (!program?.signnowTemplateId) {
+      return res.json({ signingLink: null, message: "No signing template configured for this program" });
+    }
+
+    // Check if there's an existing unsigned agreement
+    let agreement = await storage.getAgreementByPartner(partner.id);
+    if (agreement?.status === "signed") {
+      return res.json({ signingLink: null, message: "Agreement already signed" });
+    }
+
+    // Create a new signing invite
+    const signnowResult = await createSigningInvite(
+      program.signnowTemplateId,
+      `Partner Agreement - ${partner.companyName} - ${Date.now()}`,
+    );
+
+    if (!agreement) {
+      await storage.createAgreement({
+        partnerId: partner.id,
+        programId: program.id,
+        signNowDocumentId: signnowResult.documentId,
+        status: "sent",
+        sentAt: new Date(),
+      });
+    }
+
+    return res.json({ signingLink: signnowResult.signingLink, documentId: signnowResult.documentId });
+  } catch (error) {
+    console.error("Error creating signing link:", error);
+    return res.status(500).json({ message: "Failed to create signing link" });
+  }
+});
+
 // Get current partner profile
 partnerRouter.get("/me", requireAuth, requireRole("partner"), async (req, res) => {
   try {
@@ -196,14 +258,7 @@ partnerRouter.patch("/me", requireAuth, requireRole("partner"), async (req, res)
       return res.status(400).json({ message: "No valid fields to update" });
     }
 
-    // Use updateProgram pattern - we need a generic update on partner
-    // For now, use db directly since storage only has updatePartnerStatus
-    const { partners } = await import("@shared/schema");
-    const [updated] = await db
-      .update(partners)
-      .set(updates)
-      .where(eq(partners.id, partner.id))
-      .returning();
+    const updated = await storage.updatePartner(partner.id, updates);
 
     markDirty("partners");
     return res.json(updated);
@@ -224,13 +279,54 @@ partnerRouter.get("/commissions", requireAuth, requireRole("partner"), async (re
     const partnerCommissions = await storage.getCommissionsByPartner(partner.id);
     const program = await storage.getProgram(partner.programId);
 
+    // Enrich commissions with lead contact names
+    const partnerLeads = await storage.getLeadsByPartner(partner.id);
+    const leadMap = new Map(partnerLeads.map((l) => [l.id, l]));
+    const enrichedCommissions = partnerCommissions.map((c) => {
+      const lead = leadMap.get(c.leadId);
+      return { ...c, leadContactName: lead?.contactName ?? "Unknown" };
+    });
+
     return res.json({
-      commissions: partnerCommissions,
+      commissions: enrichedCommissions,
       program,
     });
   } catch (error) {
     console.error("Error fetching partner commissions:", error);
     return res.status(500).json({ message: "Failed to fetch commissions" });
+  }
+});
+
+// Change own password
+partnerRouter.post("/change-password", requireAuth, requireRole("partner"), async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "currentPassword and newPassword are required" });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: "New password must be at least 8 characters" });
+    }
+
+    const user = await storage.getUser(req.user!.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const { hashPassword, comparePasswords } = await import("../auth");
+    if (!comparePasswords(currentPassword, user.password)) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    const hashed = hashPassword(newPassword);
+    await storage.updateUser(user.id, { password: hashed });
+
+    return res.json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return res.status(500).json({ message: "Failed to change password" });
   }
 });
 
@@ -256,10 +352,10 @@ partnerRouter.post("/leads", requireAuth, requireRole("partner"), async (req, re
     // Check for duplicate leads (within program's retention window)
     const program = await storage.getProgram(partner.programId);
     const retentionDays = program?.retentionDays || 60;
-    const duplicate = await storage.checkDuplicateLead(email, retentionDays);
+    const duplicate = await storage.checkDuplicateLead(email, retentionDays, phone);
     if (duplicate) {
       return res.status(409).json({
-        message: "A lead with this email was already submitted recently",
+        message: "A lead with this email or phone was already submitted recently",
         existingLeadId: duplicate.id,
       });
     }
@@ -274,6 +370,10 @@ partnerRouter.post("/leads", requireAuth, requireRole("partner"), async (req, re
     });
 
     markDirty("leads");
+
+    // Fire-and-forget new lead alert email
+    sendNewLeadAlert(process.env.ADMIN_NOTIFICATION_EMAIL || "aaron@bettercreditpartners.com", contactName, partner.companyName).catch(console.error);
+
     return res.status(201).json(lead);
   } catch (error) {
     console.error("Error creating lead:", error);

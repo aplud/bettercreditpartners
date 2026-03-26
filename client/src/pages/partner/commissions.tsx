@@ -10,7 +10,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { DollarSign, Clock, CheckCircle } from "lucide-react";
+import { Link } from "wouter";
+import { formatDate, formatCurrency } from "@/lib/format";
 
 interface Commission {
   id: string;
@@ -37,9 +40,10 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function Commissions() {
-  const { data: commissions, isLoading } = useQuery<Commission[]>({
+  const { data: commissionsData, isLoading, isError, refetch } = useQuery<{ commissions: Commission[]; program: unknown }>({
     queryKey: ["/api/partners/commissions"],
   });
+  const commissions = commissionsData?.commissions;
 
   const totalEarned =
     commissions
@@ -75,6 +79,15 @@ export default function Commissions() {
     },
   ];
 
+  if (isError) {
+    return (
+      <Card className="p-6 text-center">
+        <p className="text-red-400 mb-4">Failed to load data. Please try again.</p>
+        <Button variant="outline" onClick={() => refetch()}>Try Again</Button>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Commissions</h1>
@@ -93,7 +106,7 @@ export default function Commissions() {
                 <Skeleton className="h-8 w-24" />
               ) : (
                 <div className="text-2xl font-bold">
-                  ${card.value.toFixed(2)}
+                  {formatCurrency(card.value)}
                 </div>
               )}
             </CardContent>
@@ -113,10 +126,18 @@ export default function Commissions() {
               ))}
             </div>
           ) : !commissions || commissions.length === 0 ? (
-            <p className="text-muted-foreground text-sm py-8 text-center">
-              No commissions yet. Commissions are created when your leads
-              convert.
-            </p>
+            <div className="py-8 text-center">
+              <p className="text-muted-foreground text-sm mb-2">
+                No commissions yet. Commissions are created when your leads
+                convert.
+              </p>
+              <p className="text-muted-foreground text-xs mb-4">
+                Submit leads to start earning commissions on successful conversions.
+              </p>
+              <Link href="/partner/submit-lead">
+                <Button variant="outline">Submit a Lead</Button>
+              </Link>
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -135,7 +156,7 @@ export default function Commissions() {
                     <TableCell className="font-medium">
                       {commission.leadName}
                     </TableCell>
-                    <TableCell>${commission.amount.toFixed(2)}</TableCell>
+                    <TableCell>{formatCurrency(commission.amount)}</TableCell>
                     <TableCell>
                       <Badge
                         variant="secondary"
@@ -145,14 +166,10 @@ export default function Commissions() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {commission.eligibleDate
-                        ? new Date(commission.eligibleDate).toLocaleDateString()
-                        : "-"}
+                      {formatDate(commission.eligibleDate)}
                     </TableCell>
                     <TableCell>
-                      {commission.paidDate
-                        ? new Date(commission.paidDate).toLocaleDateString()
-                        : "-"}
+                      {formatDate(commission.paidDate)}
                     </TableCell>
                     <TableCell>{commission.quarter}</TableCell>
                   </TableRow>

@@ -12,6 +12,7 @@ const navLinks = [
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
+  { href: "/partner-program", label: "Partner Program" },
   { href: "/enroll", label: "Enroll" },
 ];
 
@@ -42,6 +43,11 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-2">
+            <Link href="/login">
+              <Button variant="outline" size="sm" className="hidden lg:inline-flex">
+                Partner Login
+              </Button>
+            </Link>
             <ThemeToggle />
             <Button
               variant="ghost"
@@ -76,6 +82,15 @@ export function Header() {
                 </Button>
               </Link>
             ))}
+            <Link href="/login">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Partner Login
+              </Button>
+            </Link>
           </nav>
         </div>
       )}

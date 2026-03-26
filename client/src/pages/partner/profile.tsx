@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 const profileSchema = z.object({
   contactName: z.string().min(1, "Contact name is required"),
@@ -35,7 +37,7 @@ const profileSchema = z.object({
 
 type ProfileForm = z.infer<typeof profileSchema>;
 
-interface PartnerProfile {
+interface Partner {
   id: string;
   contactName: string;
   email: string;
@@ -43,17 +45,39 @@ interface PartnerProfile {
   companyName: string;
   paymentMethod: string;
   paymentDetails: string;
-  programName: string;
   referralCode: string;
   status: string;
 }
 
+interface Program {
+  name: string;
+}
+
+interface PartnerMeResponse {
+  partner: Partner;
+  program: Program;
+}
+
+const passwordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(1, "Confirm your new password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+type PasswordForm = z.infer<typeof passwordSchema>;
+
 export default function Profile() {
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const { data: profile, isLoading } = useQuery<PartnerProfile>({
+  const { data: meData, isLoading } = useQuery<PartnerMeResponse>({
     queryKey: ["/api/partners/me"],
   });
+  const profile = meData?.partner;
+  const program = meData?.program;
 
   const form = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -101,6 +125,29 @@ export default function Profile() {
     },
   });
 
+  const [pwCurrentPassword, setPwCurrentPassword] = useState("");
+  const [pwNewPassword, setPwNewPassword] = useState("");
+  const [pwConfirmPassword, setPwConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const passwordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const res = await apiRequest("POST", "/api/partners/change-password", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Password changed", description: "Your password has been updated." });
+      setPwCurrentPassword("");
+      setPwNewPassword("");
+      setPwConfirmPassword("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-6 max-w-lg">
@@ -129,7 +176,7 @@ export default function Profile() {
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Program</span>
-              <span className="font-medium">{profile.programName}</span>
+              <span className="font-medium">{program?.name}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Referral Code</span>
@@ -141,6 +188,12 @@ export default function Profile() {
               <span className="text-muted-foreground">Status</span>
               <span className="font-medium capitalize">{profile.status}</span>
             </div>
+            {user && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Login Username</span>
+                <span className="font-mono font-medium">{user.username}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -202,10 +255,9 @@ export default function Profile() {
                   <SelectValue placeholder="Select method" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="ach">ACH (Direct Deposit)</SelectItem>
                   <SelectItem value="paypal">PayPal</SelectItem>
-                  <SelectItem value="zelle">Zelle</SelectItem>
-                  <SelectItem value="check">Check</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="venmo">Venmo</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.paymentMethod && (
@@ -227,7 +279,102 @@ export default function Profile() {
               className="w-full"
               disabled={updateMutation.isPending}
             >
+              {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {updateMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </CardContent>
+        </form>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Change Password</CardTitle>
+          <CardDescription>Update your account password</CardDescription>
+        </CardHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (pwNewPassword !== pwConfirmPassword) {
+              toast({ title: "Error", description: "Passwords don't match", variant: "destructive" });
+              return;
+            }
+            if (pwNewPassword.length < 6) {
+              toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+              return;
+            }
+            passwordMutation.mutate({ currentPassword: pwCurrentPassword, newPassword: pwNewPassword });
+          }}
+        >
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <div className="relative">
+                <Input
+                  id="currentPassword"
+                  type={showCurrentPassword ? "text" : "password"}
+                  value={pwCurrentPassword}
+                  onChange={(e) => setPwCurrentPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  tabIndex={-1}
+                >
+                  {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showNewPassword ? "text" : "password"}
+                  value={pwNewPassword}
+                  onChange={(e) => setPwNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  tabIndex={-1}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={pwConfirmPassword}
+                  onChange={(e) => setPwConfirmPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              variant="outline"
+              disabled={passwordMutation.isPending}
+            >
+              {passwordMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {passwordMutation.isPending ? "Changing..." : "Change Password"}
             </Button>
           </CardContent>
         </form>

@@ -30,6 +30,7 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { RefreshCw } from "lucide-react";
+import { formatDate, formatCurrency } from "@/lib/format";
 
 interface Commission {
   id: string;
@@ -173,56 +174,58 @@ export default function AdminCommissions() {
               No commissions found.
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Partner</TableHead>
-                  <TableHead>Lead</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Eligible Date</TableHead>
-                  <TableHead>Paid Date</TableHead>
-                  <TableHead>Quarter</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {commissions.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.partnerName}</TableCell>
-                    <TableCell>{c.leadName}</TableCell>
-                    <TableCell>${(c.amount / 100).toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className={statusColors[c.status] ?? ""}>
-                        {statusLabels[c.status] ?? c.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {c.eligibleDate ? new Date(c.eligibleDate).toLocaleDateString() : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {c.paidDate ? new Date(c.paidDate).toLocaleDateString() : "-"}
-                    </TableCell>
-                    <TableCell>{c.quarter}</TableCell>
-                    <TableCell>
-                      {c.status !== "voided" && c.status !== "paid" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-red-600"
-                          onClick={() => {
-                            setVoidingId(c.id);
-                            setVoidDialogOpen(true);
-                          }}
-                        >
-                          Void
-                        </Button>
-                      )}
-                    </TableCell>
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+              <Table className="min-w-[600px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Partner</TableHead>
+                    <TableHead>Lead</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Eligible Date</TableHead>
+                    <TableHead>Paid Date</TableHead>
+                    <TableHead>Quarter</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {commissions.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-medium">{c.partnerName}</TableCell>
+                      <TableCell>{c.leadName}</TableCell>
+                      <TableCell>{formatCurrency(c.amount)}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={statusColors[c.status] ?? ""}>
+                          {statusLabels[c.status] ?? c.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {formatDate(c.eligibleDate)}
+                      </TableCell>
+                      <TableCell>
+                        {formatDate(c.paidDate)}
+                      </TableCell>
+                      <TableCell>{c.quarter}</TableCell>
+                      <TableCell>
+                        {c.status !== "voided" && c.status !== "paid" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-600"
+                            onClick={() => {
+                              setVoidingId(c.id);
+                              setVoidDialogOpen(true);
+                            }}
+                          >
+                            Void
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -1,4 +1,5 @@
-import { db } from "./db";
+import { db as _db } from "./db";
+const db = _db!;
 import { users, referralPrograms } from "@shared/schema";
 import { hashPassword } from "./auth";
 

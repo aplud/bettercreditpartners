@@ -14,7 +14,9 @@ publicRouter.get("/ref/:code", async (req, res) => {
     // Set attribution cookie (30-day expiry)
     res.cookie("bcp_ref", req.params.code, {
       maxAge: 30 * 24 * 60 * 60 * 1000,
-      httpOnly: false,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
     });
 
     return res.redirect(`/enroll?ref=${req.params.code}`);

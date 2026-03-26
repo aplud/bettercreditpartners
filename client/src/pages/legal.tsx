@@ -199,7 +199,7 @@ export default function Legal() {
 
       <section className="py-8 bg-[#060414]">
         <div className="max-w-3xl mx-auto px-6 md:px-8 text-center">
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-white/70">
             For questions about these disclosures, please <Link href="/contact" className="text-[#52ceff] hover:underline">contact us</Link>.
           </p>
         </div>

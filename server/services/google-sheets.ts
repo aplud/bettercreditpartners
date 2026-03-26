@@ -1,5 +1,6 @@
 import { google } from "googleapis";
-import { db } from "../db";
+import { db as _db } from "../db";
+const db = _db!;
 import { partners, leads, commissions, referralPrograms } from "@shared/schema";
 import { eq } from "drizzle-orm";
 

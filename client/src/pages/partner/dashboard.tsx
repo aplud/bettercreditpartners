@@ -10,7 +10,11 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Users, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { Link } from "wouter";
+import { PartnerOnboarding } from "@/components/partner-onboarding";
+import { formatDate, formatCurrency } from "@/lib/format";
 
 interface Lead {
   id: string;
@@ -27,17 +31,21 @@ interface Commission {
 }
 
 export default function PartnerDashboard() {
-  const { data: leads, isLoading: leadsLoading } = useQuery<Lead[]>({
+  const { data: leads, isLoading: leadsLoading, isError: leadsError, refetch: refetchLeads } = useQuery<Lead[]>({
     queryKey: ["/api/partners/leads"],
   });
 
-  const { data: commissions, isLoading: commissionsLoading } = useQuery<
-    Commission[]
+  const { data: commissionsData, isLoading: commissionsLoading, isError: commissionsError, refetch: refetchCommissions } = useQuery<
+    { commissions: Commission[]; program: unknown }
   >({
     queryKey: ["/api/partners/commissions"],
   });
 
+  const commissions = commissionsData?.commissions;
+
   const isLoading = leadsLoading || commissionsLoading;
+  const isError = leadsError || commissionsError;
+  const refetch = () => { refetchLeads(); refetchCommissions(); };
 
   const totalLeads = leads?.length ?? 0;
   const convertedLeads =
@@ -77,19 +85,30 @@ export default function PartnerDashboard() {
       title: "Pending Commissions",
       value: pendingCommissions,
       icon: Clock,
-      format: (v: number) => `$${v.toFixed(2)}`,
+      format: (v: number) => formatCurrency(v),
     },
     {
       title: "Total Earned",
       value: totalEarned,
       icon: DollarSign,
-      format: (v: number) => `$${v.toFixed(2)}`,
+      format: (v: number) => formatCurrency(v),
     },
   ];
+
+  if (isError) {
+    return (
+      <Card className="p-6 text-center">
+        <p className="text-red-400 mb-4">Failed to load data. Please try again.</p>
+        <Button variant="outline" onClick={() => refetch()}>Try Again</Button>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
+
+      <PartnerOnboarding />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
@@ -125,9 +144,14 @@ export default function PartnerDashboard() {
               ))}
             </div>
           ) : recentLeads.length === 0 ? (
-            <p className="text-muted-foreground text-sm py-4 text-center">
-              No leads submitted yet. Start by submitting your first lead!
-            </p>
+            <div className="py-4 text-center">
+              <p className="text-muted-foreground text-sm mb-4">
+                No leads submitted yet. Start by submitting your first lead!
+              </p>
+              <Link href="/partner/submit-lead">
+                <Button>Submit Your First Lead</Button>
+              </Link>
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -154,7 +178,7 @@ export default function PartnerDashboard() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {new Date(lead.createdAt).toLocaleDateString()}
+                      {formatDate(lead.createdAt)}
                     </TableCell>
                   </TableRow>
                 ))}

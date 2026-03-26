@@ -1,12 +1,19 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { requireAuth, requireRole } from "../auth";
 import { storage } from "../storage";
-import { db } from "../db";
-import { commissions, partners, leads, referralPrograms } from "@shared/schema";
-import { eq, and, sql, count } from "drizzle-orm";
 import { markDirty, fullSync, getSyncStatus } from "../services/google-sheets";
+import { sendLeadConvertedNotification, sendPayoutNotification } from "../services/email";
 
 export const adminRouter = Router();
+
+const adminCreateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 admin creations per hour per IP
+  message: { message: "Too many admin creation attempts, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // All admin routes require admin role
 adminRouter.use(requireAuth, requireRole("admin"));
@@ -136,6 +143,11 @@ adminRouter.post("/leads/:id/status", async (req, res) => {
       return res.status(400).json({ message: "status is required" });
     }
 
+    const validStatuses = ["new", "contacted", "converted", "lost"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status value" });
+    }
+
     const lead = await storage.getLead(id);
     if (!lead) {
       return res.status(404).json({ message: "Lead not found" });
@@ -204,15 +216,9 @@ adminRouter.post("/leads/:id/convert", async (req, res) => {
       return res.status(404).json({ message: "Program not found for this partner" });
     }
 
-    // Update lead status to converted
+    // Update lead status to converted (also sets retentionStartDate)
     const now = new Date();
     const updated = await storage.updateLeadStatus(id, "converted", now);
-
-    // Set retentionStartDate on the lead
-    await db
-      .update(leads)
-      .set({ retentionStartDate: now })
-      .where(eq(leads.id, id));
 
     // Create commission record
     const commission = await storage.createCommission({
@@ -229,11 +235,15 @@ adminRouter.post("/leads/:id/convert", async (req, res) => {
       action: "convert_lead",
       entityType: "lead",
       entityId: id,
-      details: `Lead converted. Commission ${commission.id} created for $${program.commissionAmount} with ${program.retentionDays}-day retention.`,
+      details: `Lead converted. Commission ${commission.id} created for $${(program.commissionAmount / 100).toFixed(2)} with ${program.retentionDays}-day retention.`,
     });
 
     markDirty("leads");
     markDirty("commissions");
+
+    // Fire-and-forget lead converted notification
+    sendLeadConvertedNotification(partner.email, partner.contactName, lead.contactName).catch(console.error);
+
     return res.json({ lead: updated, commission });
   } catch (error) {
     console.error("Error converting lead:", error);
@@ -249,6 +259,10 @@ adminRouter.post("/commissions/:id/void", async (req, res) => {
 
     if (!reason) {
       return res.status(400).json({ message: "reason is required" });
+    }
+
+    if (reason && reason.length > 500) {
+      return res.status(400).json({ message: "Reason must be 500 characters or fewer" });
     }
 
     // Fetch the commission to check its status
@@ -287,29 +301,27 @@ adminRouter.get("/commissions", async (req, res) => {
   try {
     const { status, partnerId, quarter } = req.query;
 
-    const conditions = [];
-    if (status) {
-      conditions.push(eq(commissions.status, status as string));
-    }
+    let result = await storage.getAllCommissions();
+
     if (partnerId) {
-      conditions.push(eq(commissions.partnerId, partnerId as string));
+      result = result.filter((c) => c.partnerId === partnerId);
+    }
+    if (status) {
+      result = result.filter((c) => c.status === status);
     }
     if (quarter) {
-      conditions.push(eq(commissions.payoutQuarter, quarter as string));
+      result = result.filter((c) => c.payoutQuarter === quarter);
     }
 
-    let result;
-    if (conditions.length > 0) {
-      result = await db
-        .select()
-        .from(commissions)
-        .where(and(...conditions))
-        .orderBy(sql`${commissions.createdAt} desc`);
-    } else {
-      result = await storage.getAllCommissions();
-    }
+    // Enrich commissions with lead contact names
+    const allLeads = await storage.getAllLeads();
+    const leadMap = new Map(allLeads.map((l) => [l.id, l]));
+    const enriched = result.map((c) => {
+      const lead = leadMap.get(c.leadId);
+      return { ...c, leadContactName: lead?.contactName ?? "Unknown" };
+    });
 
-    return res.json(result);
+    return res.json(enriched);
   } catch (error) {
     console.error("Error fetching commissions:", error);
     return res.status(500).json({ message: "Failed to fetch commissions" });
@@ -321,15 +333,15 @@ adminRouter.post("/commissions/check-retention", async (req, res) => {
   try {
     // Find commissions where status = pending_retention
     // and createdAt + retentionDays <= now
-    const eligibleCommissions = await db
-      .select()
-      .from(commissions)
-      .where(
-        and(
-          eq(commissions.status, "pending_retention"),
-          sql`${commissions.createdAt} + (${commissions.retentionDays} || ' days')::interval <= now()`,
-        ),
-      );
+    const allCommissions = await storage.getAllCommissions();
+    const now = new Date();
+    const eligibleCommissions = allCommissions.filter((c) => {
+      if (c.status !== "pending_retention") return false;
+      if (!c.createdAt) return false;
+      const created = new Date(c.createdAt);
+      const retentionMs = (c.retentionDays || 60) * 24 * 60 * 60 * 1000;
+      return created.getTime() + retentionMs <= now.getTime();
+    });
 
     let transitioned = 0;
     for (const commission of eligibleCommissions) {
@@ -399,11 +411,18 @@ adminRouter.get("/partners/:id", async (req, res) => {
     const partnerCommissions = await storage.getCommissionsByPartner(id);
     const program = await storage.getProgram(partner.programId);
 
+    // Enrich commissions with lead contact names
+    const leadMap = new Map(partnerLeads.map((l) => [l.id, l]));
+    const enrichedCommissions = partnerCommissions.map((c) => {
+      const lead = leadMap.get(c.leadId);
+      return { ...c, leadContactName: lead?.contactName ?? "Unknown" };
+    });
+
     return res.json({
       partner,
       program,
       leads: partnerLeads,
-      commissions: partnerCommissions,
+      commissions: enrichedCommissions,
     });
   } catch (error) {
     console.error("Error fetching partner detail:", error);
@@ -444,31 +463,227 @@ adminRouter.patch("/partners/:id/status", async (req, res) => {
   }
 });
 
-// Get all leads with optional filters
+// Reset a partner's password
+adminRouter.post("/partners/:id/reset-password", adminCreateLimiter, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ message: "newPassword is required and must be at least 8 characters" });
+    }
+
+    const partner = await storage.getPartner(id);
+    if (!partner) {
+      return res.status(404).json({ message: "Partner not found" });
+    }
+
+    const { hashPassword } = await import("../auth");
+    const hashed = hashPassword(newPassword);
+    await storage.updateUser(partner.userId, { password: hashed });
+
+    await storage.createAuditEntry({
+      userId: req.user!.id,
+      action: "reset_partner_password",
+      entityType: "partner",
+      entityId: id,
+      details: `Password reset for partner "${partner.companyName}"`,
+    });
+
+    return res.json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Error resetting partner password:", error);
+    return res.status(500).json({ message: "Failed to reset password" });
+  }
+});
+
+// ── Manually Create a Partner ──────────────────────────────────────────────
+adminRouter.post("/partners", async (req, res) => {
+  try {
+    const { username, password, companyName, contactName, email, phone, programId, paymentMethod, paymentDetails, agreementSigned } = req.body;
+
+    if (!username || !password || !companyName || !contactName || !email || !phone || !programId || !paymentMethod) {
+      return res.status(400).json({ message: "username, password, companyName, contactName, email, phone, programId, and paymentMethod are required" });
+    }
+
+    // Verify program exists
+    const program = await storage.getProgram(programId);
+    if (!program) return res.status(400).json({ message: "Invalid program" });
+
+    // Check username
+    const existingUser = await storage.getUserByUsername(username);
+    if (existingUser) return res.status(409).json({ message: "Username already exists" });
+
+    // Create user
+    const { hashPassword } = await import("../auth");
+    const hashedPassword = hashPassword(password);
+    const user = await storage.createUser({ username, password: hashedPassword });
+    await storage.updateUser(user.id, { role: "partner" });
+
+    // Generate referral code
+    const { randomBytes } = await import("crypto");
+    let referralCode = randomBytes(5).toString("hex").toUpperCase();
+    let existing = await storage.getPartnerByReferralCode(referralCode);
+    while (existing) {
+      referralCode = randomBytes(5).toString("hex").toUpperCase();
+      existing = await storage.getPartnerByReferralCode(referralCode);
+    }
+
+    // Create partner
+    const partner = await storage.createPartner({
+      userId: user.id,
+      programId,
+      companyName,
+      contactName,
+      email,
+      phone,
+      status: agreementSigned ? "active" : "pending",
+      referralCode,
+      paymentMethod,
+      paymentDetails: paymentDetails || null,
+    });
+
+    // If admin marks agreement as signed, create a signed agreement record
+    if (agreementSigned) {
+      await storage.createAgreement({
+        partnerId: partner.id,
+        programId,
+        signNowDocumentId: "manual-admin-approval",
+        status: "signed",
+        sentAt: new Date(),
+      });
+      await storage.updateAgreementStatus(
+        (await storage.getAgreementByPartner(partner.id))!.id,
+        "signed",
+        new Date(),
+      );
+    }
+
+    await storage.createAuditEntry({
+      userId: req.user!.id,
+      action: "create_partner",
+      entityType: "partner",
+      entityId: partner.id,
+      details: `Manually created partner "${companyName}" (${username})`,
+    });
+
+    markDirty("partners");
+    return res.status(201).json(partner);
+  } catch (error) {
+    console.error("Error creating partner:", error);
+    return res.status(500).json({ message: "Failed to create partner" });
+  }
+});
+
+// ── Admin: Add Lead for a Partner ─────────────────────────────────────────
+adminRouter.post("/partners/:id/leads", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const partner = await storage.getPartner(id);
+    if (!partner) return res.status(404).json({ message: "Partner not found" });
+
+    const { contactName, email, phone } = req.body;
+    if (!contactName || !email || !phone) {
+      return res.status(400).json({ message: "contactName, email, and phone are required" });
+    }
+
+    const lead = await storage.createLead({
+      partnerId: partner.id,
+      contactName,
+      email,
+      phone,
+      source: "form",
+      status: "new",
+    });
+
+    await storage.createAuditEntry({
+      userId: req.user!.id,
+      action: "create_lead_for_partner",
+      entityType: "lead",
+      entityId: lead.id,
+      details: `Admin created lead "${contactName}" for partner "${partner.companyName}"`,
+    });
+
+    markDirty("leads");
+    return res.status(201).json(lead);
+  } catch (error) {
+    console.error("Error creating lead for partner:", error);
+    return res.status(500).json({ message: "Failed to create lead" });
+  }
+});
+
+// ── Admin: Mark Partner Agreement as Signed ───────────────────────────────
+adminRouter.post("/partners/:id/mark-agreement-signed", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const partner = await storage.getPartner(id);
+    if (!partner) return res.status(404).json({ message: "Partner not found" });
+
+    let agreement = await storage.getAgreementByPartner(partner.id);
+
+    if (agreement?.status === "signed") {
+      return res.json({ message: "Agreement is already signed" });
+    }
+
+    if (!agreement) {
+      agreement = await storage.createAgreement({
+        partnerId: partner.id,
+        programId: partner.programId,
+        signNowDocumentId: "manual-admin-approval",
+        status: "signed",
+        sentAt: new Date(),
+      });
+    }
+
+    await storage.updateAgreementStatus(agreement.id, "signed", new Date());
+    await storage.updatePartnerStatus(partner.id, "active");
+
+    await storage.createAuditEntry({
+      userId: req.user!.id,
+      action: "mark_agreement_signed",
+      entityType: "partner",
+      entityId: id,
+      details: `Admin manually marked agreement as signed for "${partner.companyName}"`,
+    });
+
+    markDirty("partners");
+    return res.json({ message: "Agreement marked as signed, partner activated" });
+  } catch (error) {
+    console.error("Error marking agreement signed:", error);
+    return res.status(500).json({ message: "Failed to mark agreement signed" });
+  }
+});
+
+// Get all leads with optional filters, enriched with partner info
 adminRouter.get("/leads", async (req, res) => {
   try {
     const { partnerId, status } = req.query;
 
-    const conditions = [];
+    let result = await storage.getAllLeads();
+
     if (partnerId) {
-      conditions.push(eq(leads.partnerId, partnerId as string));
+      result = result.filter((l) => l.partnerId === partnerId);
     }
     if (status) {
-      conditions.push(eq(leads.status, status as string));
+      result = result.filter((l) => l.status === status);
     }
 
-    let result;
-    if (conditions.length > 0) {
-      result = await db
-        .select()
-        .from(leads)
-        .where(and(...conditions))
-        .orderBy(sql`${leads.createdAt} desc`);
-    } else {
-      result = await storage.getAllLeads();
-    }
+    // Enrich leads with partner details
+    const allPartners = await storage.getPartners();
+    const partnerMap = new Map(allPartners.map((p) => [p.id, p]));
 
-    return res.json(result);
+    const enriched = result.map((lead) => {
+      const partner = partnerMap.get(lead.partnerId);
+      return {
+        ...lead,
+        partnerName: partner?.companyName ?? "Unknown",
+        partnerContactName: partner?.contactName ?? "",
+        partnerEmail: partner?.email ?? "",
+        partnerStatus: partner?.status ?? "",
+      };
+    });
+
+    return res.json(enriched);
   } catch (error) {
     console.error("Error fetching leads:", error);
     return res.status(500).json({ message: "Failed to fetch leads" });
@@ -515,6 +730,13 @@ adminRouter.post("/payouts/generate", async (req, res) => {
 
     if (!quarter || !/^\d{4}-Q[1-4]$/.test(quarter)) {
       return res.status(400).json({ message: 'quarter is required (format: "2026-Q1")' });
+    }
+
+    // Check if payout already generated for this quarter
+    const existingReports = await storage.getPayoutReports();
+    const alreadyGenerated = existingReports.find((r) => r.quarter === quarter);
+    if (alreadyGenerated) {
+      return res.status(400).json({ message: "Payout already generated for this quarter" });
     }
 
     // Get all eligible commissions
@@ -579,19 +801,18 @@ adminRouter.post("/payouts/generate", async (req, res) => {
           escape(partner.paymentMethod),
           escape(partner.paymentDetails),
           partnerCommissions.length.toString(),
-          amount.toString(),
+          (amount / 100).toFixed(2),
         ].join(","),
       );
     }
 
     // Mark all commissions as paid
     for (const commission of eligibleCommissions) {
-      await storage.transitionCommissionStatus(commission.id, "paid");
-      // Set payoutQuarter
-      await db
-        .update(commissions)
-        .set({ payoutQuarter: quarter })
-        .where(eq(commissions.id, commission.id));
+      const updated = await storage.transitionCommissionStatus(commission.id, "paid");
+      // Set payoutQuarter on the returned commission object
+      if (updated) {
+        updated.payoutQuarter = quarter;
+      }
     }
 
     // Create payout report record
@@ -607,10 +828,18 @@ adminRouter.post("/payouts/generate", async (req, res) => {
       action: "generate_payout",
       entityType: "payout_report",
       entityId: quarter,
-      details: `Generated payout for ${quarter}: ${partnerCount} partners, $${totalAmount} total, ${eligibleCommissions.length} commissions`,
+      details: `Generated payout for ${quarter}: ${partnerCount} partners, $${(totalAmount / 100).toFixed(2)} total, ${eligibleCommissions.length} commissions`,
     });
 
     markDirty("commissions");
+
+    // Fire-and-forget payout notifications for each partner
+    for (const pid of partnerIds) {
+      const { partner, commissions: partnerCommissions } = partnerMap[pid];
+      const amount = partnerCommissions.reduce((sum: number, c: typeof partnerCommissions[number]) => sum + c.amount, 0);
+      sendPayoutNotification(partner.email, partner.contactName, amount, quarter).catch(console.error);
+    }
+
     const csv = csvLines.join("\n");
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", `attachment; filename="payout-${quarter}.csv"`);
@@ -673,5 +902,74 @@ adminRouter.get("/sheets/status", async (_req, res) => {
   } catch (error) {
     console.error("Error fetching sync status:", error);
     return res.status(500).json({ message: "Failed to fetch sync status" });
+  }
+});
+
+// ── Admin Account Management ──────────────────────────────────────────────
+
+// List all admin users
+adminRouter.get("/admins", async (_req, res) => {
+  try {
+    const admins = await storage.getUsersByRole("admin");
+    const safe = admins.map(({ password: _, ...u }) => u);
+    return res.json(safe);
+  } catch (error) {
+    console.error("Error fetching admins:", error);
+    return res.status(500).json({ message: "Failed to fetch admin accounts" });
+  }
+});
+
+// Create a new admin account
+adminRouter.post("/admins", adminCreateLimiter, async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username and password are required" });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    }
+
+    const existing = await storage.getUserByUsername(username);
+    if (existing) {
+      return res.status(409).json({ message: "Username already exists" });
+    }
+
+    const { hashPassword } = await import("../auth");
+    const user = await storage.createUser({ username, password: hashPassword(password) });
+    await storage.updateUser(user.id, { role: "admin" });
+    user.role = "admin";
+
+    const { password: _, ...safe } = user;
+    return res.status(201).json(safe);
+  } catch (error) {
+    console.error("Error creating admin:", error);
+    return res.status(500).json({ message: "Failed to create admin account" });
+  }
+});
+
+// Delete an admin account
+adminRouter.delete("/admins/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Prevent deleting yourself
+    if (id === req.user!.id) {
+      return res.status(400).json({ message: "You cannot delete your own account" });
+    }
+
+    const user = await storage.getUser(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (user.role !== "admin") {
+      return res.status(400).json({ message: "User is not an admin" });
+    }
+
+    await storage.deleteUser(id);
+    return res.json({ message: "Admin account deleted" });
+  } catch (error) {
+    console.error("Error deleting admin:", error);
+    return res.status(500).json({ message: "Failed to delete admin account" });
   }
 });

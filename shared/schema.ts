@@ -3,6 +3,12 @@ import { pgTable, text, varchar, timestamp, boolean, integer, index } from "driz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const LEAD_STATUSES = ["new", "contacted", "converted", "lost"] as const;
+export const PARTNER_STATUSES = ["pending", "active", "suspended"] as const;
+export const COMMISSION_STATUSES = ["pending_retention", "eligible", "paid", "voided"] as const;
+export const PAYOUT_SCHEDULES = ["monthly", "quarterly", "annual"] as const;
+export const PAYMENT_METHODS = ["ach", "paypal", "venmo"] as const;
+
 // ─── Users ───────────────────────────────────────────────────────────────────
 
 export const users = pgTable("users", {
@@ -10,7 +16,9 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   role: text("role").notNull().default("customer"),
-});
+}, (table) => [
+  index("users_username_idx").on(table.username),
+]);
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -117,7 +125,10 @@ export const partners = pgTable("partners", {
   paymentMethod: text("payment_method").notNull(),
   paymentDetails: text("payment_details"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("partners_user_id_idx").on(table.userId),
+  index("partners_status_idx").on(table.status),
+]);
 
 export const insertPartnerSchema = createInsertSchema(partners).omit({
   id: true,
@@ -143,6 +154,7 @@ export const leads = pgTable("leads", {
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [
   index("leads_email_idx").on(table.email),
+  index("leads_partner_id_idx").on(table.partnerId),
 ]);
 
 export const insertLeadSchema = createInsertSchema(leads).omit({
@@ -168,7 +180,10 @@ export const commissions = pgTable("commissions", {
   payoutQuarter: text("payout_quarter"),
   voidedReason: text("voided_reason"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index("commissions_partner_id_idx").on(table.partnerId),
+  index("commissions_status_idx").on(table.status),
+]);
 
 export const insertCommissionSchema = createInsertSchema(commissions).omit({
   id: true,

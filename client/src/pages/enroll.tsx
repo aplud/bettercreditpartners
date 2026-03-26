@@ -319,7 +319,7 @@ export default function Enroll() {
                   <h2 className="text-lg font-semibold text-white mb-1">
                     Which state do you live in?
                   </h2>
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-white/70">
                     Select your state to confirm we can serve you.
                   </p>
                 </div>
@@ -399,7 +399,7 @@ export default function Enroll() {
               </div>
 
               {/* Trust signals */}
-              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/30 pt-2">
+              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white/60 pt-2">
                 <span className="flex items-center gap-1.5">
                   <ShieldCheck className="h-3.5 w-3.5" />
                   CROA Compliant
@@ -424,7 +424,7 @@ export default function Enroll() {
                   <h2 className="text-lg font-semibold text-white mb-1">
                     Tell us a bit about yourself
                   </h2>
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-white/70">
                     We'll use this to set up your account and keep you updated on your progress.
                   </p>
                 </div>
@@ -446,7 +446,7 @@ export default function Enroll() {
                 <Button
                   type="button"
                   variant="ghost"
-                  className="text-white/50 hover:text-white hover:bg-white/5"
+                  className="text-white/70 hover:text-white hover:bg-white/5"
                   onClick={() => {
                     setStep(0);
                     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -492,7 +492,7 @@ export default function Enroll() {
                         <Info className="h-4 w-4 text-[#52ceff]" />
                         What am I signing?
                       </span>
-                      <ChevronDown className={`h-4 w-4 text-white/50 transition-transform ${showSigningInfo ? "rotate-180" : ""}`} />
+                      <ChevronDown className={`h-4 w-4 text-white/70 transition-transform ${showSigningInfo ? "rotate-180" : ""}`} />
                     </button>
                     {showSigningInfo && (
                       <div className="mt-3 text-sm text-white/60 space-y-2 animate-in fade-in duration-200">
@@ -573,7 +573,7 @@ export default function Enroll() {
                   <Button
                     type="button"
                     variant="ghost"
-                    className="text-white/50 hover:text-white hover:bg-white/5"
+                    className="text-white/70 hover:text-white hover:bg-white/5"
                     onClick={() => {
                       if (pollingRef.current) clearInterval(pollingRef.current);
                       setStep(1);
@@ -585,7 +585,7 @@ export default function Enroll() {
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Back
                   </Button>
-                  <p className="text-xs text-white/30">
+                  <p className="text-xs text-white/60">
                     Complete the signature above to continue
                   </p>
                 </div>
@@ -638,7 +638,7 @@ export default function Enroll() {
                       </div>
                       <div className="pt-0.5">
                         <p className="text-white font-medium text-sm">{item.title}</p>
-                        <p className="text-white/50 text-sm mt-0.5">{item.desc}</p>
+                        <p className="text-white/70 text-sm mt-0.5">{item.desc}</p>
                       </div>
                     </div>
                   ))}
@@ -654,7 +654,7 @@ export default function Enroll() {
                   <p className="text-white font-medium text-sm">
                     $129/month, billed after your first month
                   </p>
-                  <p className="text-white/50 text-xs mt-1">
+                  <p className="text-white/70 text-xs mt-1">
                     You're only billed once we've completed the first month of work. Cancel anytime with no penalties.
                   </p>
                 </div>
@@ -670,7 +670,7 @@ export default function Enroll() {
                   Activate My Account
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
-                <p className="text-xs text-white/30 mt-3">
+                <p className="text-xs text-white/60 mt-3">
                   You'll be redirected to our secure checkout page
                 </p>
               </div>

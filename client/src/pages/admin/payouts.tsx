@@ -23,6 +23,7 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Download } from "lucide-react";
+import { formatDate, formatCurrency } from "@/lib/format";
 
 interface Payout {
   id: string;
@@ -135,8 +136,8 @@ export default function Payouts() {
                 {payouts.map((payout) => (
                   <TableRow key={payout.id}>
                     <TableCell className="font-medium">{payout.quarter}</TableCell>
-                    <TableCell>{new Date(payout.generatedAt).toLocaleDateString()}</TableCell>
-                    <TableCell>${(payout.totalAmount / 100).toFixed(2)}</TableCell>
+                    <TableCell>{formatDate(payout.generatedAt)}</TableCell>
+                    <TableCell>{formatCurrency(payout.totalAmount)}</TableCell>
                     <TableCell>{payout.partnerCount}</TableCell>
                   </TableRow>
                 ))}

@@ -2,10 +2,12 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import rateLimit from "express-rate-limit";
 import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
 import type { Express, RequestHandler } from "express";
 import { storage } from "./storage";
-import { pool } from "./db";
+import { pool as _pool } from "./db";
+const pool = _pool ?? undefined; // connect-pg-simple accepts Pool | undefined, not null
 
 declare global {
   namespace Express {
@@ -31,22 +33,32 @@ function comparePasswords(supplied: string, stored: string): boolean {
 }
 
 export function setupAuth(app: Express) {
-  const PgStore = connectPgSimple(session);
+  const isProduction = process.env.NODE_ENV === "production";
+  const sessionSecret = process.env.SESSION_SECRET;
 
-  const sessionMiddleware = session({
-    store: new PgStore({
-      pool,
-      createTableIfMissing: true,
-    }),
-    secret: process.env.SESSION_SECRET || "bcp-dev-secret-change-in-production",
+  if (!sessionSecret && isProduction) {
+    throw new Error("FATAL: SESSION_SECRET environment variable is required in production");
+  }
+
+  const sessionConfig: session.SessionOptions = {
+    secret: sessionSecret || "bcp-dev-secret-change-in-production",
     resave: false,
     saveUninitialized: false,
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isProduction,
+      sameSite: "lax",
     },
-  });
+  };
+
+  if (pool) {
+    const PgStore = connectPgSimple(session);
+    sessionConfig.store = new PgStore({ pool, createTableIfMissing: true });
+  }
+  // When pool is null (no DATABASE_URL), uses default MemoryStore — fine for dev preview
+
+  const sessionMiddleware = session(sessionConfig);
 
   app.use(sessionMiddleware);
   app.use(passport.initialize());
@@ -82,11 +94,29 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // ── Rate Limiting ──────────────────────────────────────────────────────────
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // 10 attempts per window
+    message: { message: "Too many attempts, please try again later" },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  const registerLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5, // 5 registrations per hour per IP
+    message: { message: "Too many registration attempts, please try again later" },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   // ── Auth Routes ─────────────────────────────────────────────────────────────
 
-  app.post("/api/auth/register", async (req, res, next) => {
+  app.post("/api/auth/register", registerLimiter, async (req, res, next) => {
     try {
-      const { username, password, role } = req.body;
+      const { username, password } = req.body;
 
       if (!username || !password) {
         return res.status(400).json({ message: "Username and password are required" });
@@ -100,16 +130,6 @@ export function setupAuth(app: Express) {
       const hashedPassword = hashPassword(password);
       const user = await storage.createUser({ username, password: hashedPassword });
 
-      // If a role was requested and differs from default, update it directly
-      // (createUser uses InsertUser which doesn't include role)
-      if (role && role !== "customer") {
-        const { db } = await import("./db");
-        const { users } = await import("@shared/schema");
-        const { eq } = await import("drizzle-orm");
-        await db.update(users).set({ role }).where(eq(users.id, user.id));
-        user.role = role;
-      }
-
       req.login(user, (err) => {
         if (err) return next(err);
         const { password: _, ...userWithoutPassword } = user;
@@ -120,7 +140,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/auth/login", (req, res, next) => {
+  app.post("/api/auth/login", authLimiter, (req, res, next) => {
     passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) return next(err);
       if (!user) {
@@ -175,4 +195,4 @@ export function requireRole(...roles: string[]): RequestHandler {
   };
 }
 
-export { hashPassword };
+export { hashPassword, comparePasswords };

@@ -24,17 +24,22 @@ import {
 } from "@/components/ui/dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatDate, formatCurrency } from "@/lib/format";
 
-interface PartnerDetail {
-  id: string;
-  companyName: string;
-  contactName: string;
-  email: string;
-  phone: string;
-  status: string;
-  programName: string;
-  paymentMethod: string | null;
-  paymentDetails: string | null;
+interface PartnerDetailResponse {
+  partner: {
+    id: string;
+    companyName: string;
+    contactName: string;
+    email: string;
+    phone: string;
+    status: string;
+    paymentMethod: string | null;
+    paymentDetails: string | null;
+  };
+  program: {
+    name: string;
+  };
   leads: Lead[];
   commissions: Commission[];
 }
@@ -50,12 +55,13 @@ interface Lead {
 
 interface Commission {
   id: string;
-  leadName: string;
+  leadId: string;
   amount: number;
   status: string;
-  eligibleDate: string | null;
-  paidDate: string | null;
-  quarter: string;
+  eligibleAt: string | null;
+  paidAt: string | null;
+  payoutQuarter: string | null;
+  voidedReason: string | null;
 }
 
 const leadStatusColors: Record<string, string> = {
@@ -87,11 +93,22 @@ export default function PartnerDetailPage() {
   const [voidDialogOpen, setVoidDialogOpen] = useState(false);
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
+  const [resetPwOpen, setResetPwOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [addLeadOpen, setAddLeadOpen] = useState(false);
+  const [newLead, setNewLead] = useState({ contactName: "", email: "", phone: "" });
 
-  const { data: partner, isLoading } = useQuery<PartnerDetail>({
+  const { data: detailData, isLoading } = useQuery<PartnerDetailResponse>({
     queryKey: [`/api/admin/partners/${partnerId}`],
     enabled: !!partnerId,
   });
+
+  const partner = detailData ? {
+    ...detailData.partner,
+    programName: detailData.program?.name ?? "",
+    leads: detailData.leads ?? [],
+    commissions: detailData.commissions ?? [],
+  } : null;
 
   const leadStatusMutation = useMutation({
     mutationFn: async ({ leadId, status }: { leadId: string; status: string }) => {
@@ -113,6 +130,48 @@ export default function PartnerDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/admin/partners/${partnerId}`] });
       toast({ title: "Lead converted and commission created" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: { newPassword: string }) => {
+      await apiRequest("POST", `/api/admin/partners/${partnerId}/reset-password`, data);
+    },
+    onSuccess: () => {
+      setResetPwOpen(false);
+      setNewPassword("");
+      toast({ title: "Password reset", description: "Partner password has been updated." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const addLeadMutation = useMutation({
+    mutationFn: async (data: { contactName: string; email: string; phone: string }) => {
+      await apiRequest("POST", `/api/admin/partners/${partnerId}/leads`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/partners/${partnerId}`] });
+      setAddLeadOpen(false);
+      setNewLead({ contactName: "", email: "", phone: "" });
+      toast({ title: "Lead added" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const markAgreementMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", `/api/admin/partners/${partnerId}/mark-agreement-signed`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/partners/${partnerId}`] });
+      toast({ title: "Agreement marked as signed", description: "Partner has been activated." });
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -153,8 +212,22 @@ export default function PartnerDetailPage() {
       <h1 className="text-2xl font-bold">{partner.companyName}</h1>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Partner Information</CardTitle>
+          <div className="flex gap-2">
+            {partner.status === "pending" && (
+              <Button
+                size="sm"
+                onClick={() => markAgreementMutation.mutate()}
+                disabled={markAgreementMutation.isPending}
+              >
+                {markAgreementMutation.isPending ? "Marking..." : "Mark Agreement Signed"}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setResetPwOpen(true)}>
+              Reset Password
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -200,69 +273,77 @@ export default function PartnerDetailPage() {
 
         <TabsContent value="leads" className="mt-4">
           <Card>
-            <CardContent className="pt-6">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-base">Leads</CardTitle>
+              <Button size="sm" variant="outline" onClick={() => setAddLeadOpen(true)}>
+                Add Lead
+              </Button>
+            </CardHeader>
+            <CardContent>
               {!partner.leads || partner.leads.length === 0 ? (
                 <p className="text-muted-foreground text-sm py-4 text-center">No leads.</p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {partner.leads.map((lead) => (
-                      <TableRow key={lead.id}>
-                        <TableCell className="font-medium">{lead.contactName}</TableCell>
-                        <TableCell>{lead.email}</TableCell>
-                        <TableCell>{lead.phone}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className={leadStatusColors[lead.status] ?? ""}>
-                            {lead.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{new Date(lead.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {lead.status === "new" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => leadStatusMutation.mutate({ leadId: lead.id, status: "contacted" })}
-                              >
-                                Mark Contacted
-                              </Button>
-                            )}
-                            {lead.status === "contacted" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => convertMutation.mutate(lead.id)}
-                              >
-                                Mark Converted
-                              </Button>
-                            )}
-                            {lead.status !== "lost" && lead.status !== "converted" && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-red-600"
-                                onClick={() => leadStatusMutation.mutate({ leadId: lead.id, status: "lost" })}
-                              >
-                                Lost
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {partner.leads.map((lead) => (
+                        <TableRow key={lead.id}>
+                          <TableCell className="font-medium">{lead.contactName}</TableCell>
+                          <TableCell>{lead.email}</TableCell>
+                          <TableCell>{lead.phone}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className={leadStatusColors[lead.status] ?? ""}>
+                              {lead.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{formatDate(lead.createdAt)}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              {lead.status === "new" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => leadStatusMutation.mutate({ leadId: lead.id, status: "contacted" })}
+                                >
+                                  Mark Contacted
+                                </Button>
+                              )}
+                              {lead.status === "contacted" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => convertMutation.mutate(lead.id)}
+                                >
+                                  Mark Converted
+                                </Button>
+                              )}
+                              {lead.status !== "lost" && lead.status !== "converted" && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-red-600"
+                                  onClick={() => leadStatusMutation.mutate({ leadId: lead.id, status: "lost" })}
+                                >
+                                  Lost
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -274,58 +355,56 @@ export default function PartnerDetailPage() {
               {!partner.commissions || partner.commissions.length === 0 ? (
                 <p className="text-muted-foreground text-sm py-4 text-center">No commissions.</p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Lead</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Eligible Date</TableHead>
-                      <TableHead>Paid Date</TableHead>
-                      <TableHead>Quarter</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {partner.commissions.map((commission) => (
-                      <TableRow key={commission.id}>
-                        <TableCell className="font-medium">{commission.leadName}</TableCell>
-                        <TableCell>${(commission.amount / 100).toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className={commissionStatusColors[commission.status] ?? ""}>
-                            {commissionStatusLabels[commission.status] ?? commission.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {commission.eligibleDate
-                            ? new Date(commission.eligibleDate).toLocaleDateString()
-                            : "-"}
-                        </TableCell>
-                        <TableCell>
-                          {commission.paidDate
-                            ? new Date(commission.paidDate).toLocaleDateString()
-                            : "-"}
-                        </TableCell>
-                        <TableCell>{commission.quarter}</TableCell>
-                        <TableCell>
-                          {commission.status !== "voided" && commission.status !== "paid" && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-red-600"
-                              onClick={() => {
-                                setVoidingId(commission.id);
-                                setVoidDialogOpen(true);
-                              }}
-                            >
-                              Void
-                            </Button>
-                          )}
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Lead</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Eligible Date</TableHead>
+                        <TableHead>Paid Date</TableHead>
+                        <TableHead>Quarter</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {partner.commissions.map((commission) => (
+                        <TableRow key={commission.id}>
+                          <TableCell className="font-medium">{commission.leadId?.slice(0, 8) ?? "-"}</TableCell>
+                          <TableCell>{formatCurrency(commission.amount)}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className={commissionStatusColors[commission.status] ?? ""}>
+                              {commissionStatusLabels[commission.status] ?? commission.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {formatDate(commission.eligibleAt)}
+                          </TableCell>
+                          <TableCell>
+                            {formatDate(commission.paidAt)}
+                          </TableCell>
+                          <TableCell>{commission.payoutQuarter ?? "-"}</TableCell>
+                          <TableCell>
+                            {commission.status !== "voided" && commission.status !== "paid" && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-red-600"
+                                onClick={() => {
+                                  setVoidingId(commission.id);
+                                  setVoidDialogOpen(true);
+                                }}
+                              >
+                                Void
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -357,6 +436,65 @@ export default function PartnerDetailPage() {
             </div>
             <Button type="submit" variant="destructive" className="w-full" disabled={voidMutation.isPending}>
               {voidMutation.isPending ? "Voiding..." : "Void Commission"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={resetPwOpen} onOpenChange={(open) => { setResetPwOpen(open); if (!open) setNewPassword(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Partner Password</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              resetPasswordMutation.mutate({ newPassword });
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={6}
+                placeholder="Min 6 characters"
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={resetPasswordMutation.isPending}>
+              {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addLeadOpen} onOpenChange={(open) => { setAddLeadOpen(open); if (!open) setNewLead({ contactName: "", email: "", phone: "" }); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Lead for {partner?.companyName}</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => { e.preventDefault(); addLeadMutation.mutate(newLead); }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label>Contact Name</Label>
+              <Input value={newLead.contactName} onChange={(e) => setNewLead(l => ({ ...l, contactName: e.target.value }))} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input type="email" value={newLead.email} onChange={(e) => setNewLead(l => ({ ...l, email: e.target.value }))} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Phone</Label>
+              <Input type="tel" value={newLead.phone} onChange={(e) => setNewLead(l => ({ ...l, phone: e.target.value }))} required />
+            </div>
+            <Button type="submit" className="w-full" disabled={addLeadMutation.isPending}>
+              {addLeadMutation.isPending ? "Adding..." : "Add Lead"}
             </Button>
           </form>
         </DialogContent>

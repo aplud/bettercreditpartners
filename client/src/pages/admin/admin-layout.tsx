@@ -25,11 +25,14 @@ import {
   Sheet,
   ScrollText,
   LogOut,
+  ShieldCheck,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Separator } from "@/components/ui/separator";
+import bcpLogo from "@assets/BCP-ISOLOGO_1768516740168.png";
 
 const navGroups = [
   {
@@ -66,6 +69,7 @@ const navGroups = [
   {
     label: "System",
     items: [
+      { label: "Admin Accounts", href: "/admin/accounts", icon: ShieldCheck },
       { label: "Google Sheets Sync", href: "/admin/sheets-sync", icon: Sheet },
       { label: "Audit Log", href: "/admin/audit-log", icon: ScrollText },
     ],
@@ -91,9 +95,7 @@ export default function AdminLayout({
       <Sidebar collapsible="icon">
         <SidebarHeader className="border-b bg-slate-900 text-white">
           <div className="flex items-center gap-2 px-2 py-1">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-slate-900 font-bold text-sm">
-              BCP
-            </div>
+            <img src={bcpLogo} alt="BCP" className="h-8 w-8 object-contain" />
             <span className="font-semibold text-sm group-data-[collapsible=icon]:hidden">
               BCP Admin
             </span>
@@ -129,6 +131,18 @@ export default function AdminLayout({
         </SidebarContent>
         <SidebarFooter className="border-t border-slate-700 bg-slate-900">
           <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                tooltip="Back to Website"
+                className="text-slate-300 hover:text-white hover:bg-slate-800"
+              >
+                <a href="/">
+                  <ExternalLink />
+                  <span>Back to Website</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={handleLogout}

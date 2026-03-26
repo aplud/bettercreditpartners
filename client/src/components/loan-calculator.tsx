@@ -162,6 +162,9 @@ export function LoanCalculator() {
                 max={850}
                 step={1}
                 className="w-full"
+                trackClassName="bg-gradient-to-r from-[#c0d353] to-[#1a5c3a] h-2.5"
+                rangeClassName="bg-transparent"
+                thumbClassName="border-white/80 bg-white shadow-md"
                 data-testid="slider-fico-score"
               />
               <div className="flex justify-between text-xs text-white/60 mt-3 px-1 font-medium">
@@ -224,12 +227,12 @@ export function LoanCalculator() {
             <p className="text-white/80 font-semibold uppercase tracking-wide text-sm">
               Over The Life Of Your Loan
             </p>
-            <p className="text-white/40 text-xs mt-2">
+            <p className="text-white/60 text-xs mt-2">
               Compared to the lowest credit tier (300-499)
             </p>
           </div>
 
-          <p className="text-xs text-white/40 mt-4 leading-relaxed">
+          <p className="text-xs text-white/60 mt-4 leading-relaxed">
             *Estimates based on average APR data (2024). Actual rates depend on your lender, loan terms, and individual credit profile. This calculator is for educational purposes only and does not guarantee any specific rate or savings.{" "}
             <a
               href="https://www.myfico.com/credit-education/calculators/loan-savings-calculator"
