@@ -1,0 +1,44 @@
+I need you to fix these bugs and UX issues in my BCP partner portal. Do NOT change any security code, environment variables, or server infrastructure. Only fix the specific issues listed below.
+
+## Bug Fixes
+
+1. **Commission lead names missing**: In server/routes/partner.ts (GET /commissions endpoint) and server/routes/admin.ts (GET /commissions endpoint), enrich each commission with the lead's contactName. After fetching commissions, map over them and look up each lead by leadId using storage.getLead(), then add leadContactName to the response. Display this name in the commissions tables on both partner and admin sides.
+
+2. **Duplicate lead phone check**: In server/storage.ts, find the checkDuplicateLead() function. Currently it only checks email. Update it to also check if the phone number matches (match either email OR phone).
+
+3. **Payout double-generation prevention**: In server/routes/admin.ts, find the POST /payouts/generate endpoint. Before generating, check if a payout report already exists for the requested quarter using storage.getPayoutReports(). If one exists, return a 409 error saying "Payout already generated for this quarter".
+
+4. **Error states on partner pages**: In these files, add isError handling with a retry button after the loading state check:
+   - client/src/pages/partner/my-leads.tsx
+   - client/src/pages/partner/commissions.tsx
+   - client/src/pages/partner/referral-link.tsx
+   - client/src/pages/partner/agreement.tsx
+   Pattern: destructure isError and refetch from useQuery, then add: if (isError) return a div with "Failed to load data" text and a Button that calls refetch().
+
+## UX Improvements
+
+5. **Mobile table scroll**: Wrap all data tables in overflow-x-auto containers in these files:
+   - client/src/pages/partner/my-leads.tsx
+   - client/src/pages/partner/commissions.tsx
+   - client/src/pages/admin/partners.tsx
+   - client/src/pages/admin/commissions.tsx
+   Pattern: <div className="overflow-x-auto"><Table className="min-w-[600px]">...existing table...</Table></div>
+
+6. **Active sidebar nav highlighting**: In client/src/pages/partner/partner-layout.tsx and client/src/pages/admin/admin-layout.tsx, make the active sidebar item more visually distinct. Add className={isActive ? "bg-white/10 font-medium" : ""} to SidebarMenuButton components.
+
+7. **Color contrast fixes**: In client/src/pages/auth/login.tsx and client/src/components/header.tsx, find all instances of text-white/30 and change to text-white/60. Find all instances of text-white/50 and change to text-white/70.
+
+8. **Submit lead form improvements**: In client/src/pages/partner/submit-lead.tsx:
+   - Add red asterisks after each required field label: <span className="text-red-400">*</span>
+   - Add placeholder to phone field: placeholder="(555) 123-4567"
+   - After successful submission, navigate to /partner/leads instead of just resetting the form
+
+9. **Suspend partner confirmation dialog**: In client/src/pages/admin/partners.tsx, wrap the Suspend button in an AlertDialog (import from @/components/ui/alert-dialog). Show confirmation: "Suspend Partner?" with description "This will prevent the partner from submitting leads and earning commissions. You can reactivate them later." with Cancel and Suspend buttons.
+
+10. **Referral link attribution reminder**: In client/src/pages/partner/referral-link.tsx, add this text below the referral link: <p className="text-sm text-muted-foreground mt-2">Leads are attributed to you within 5 business days of clicking your link.</p>
+
+11. **Empty state CTAs**: In client/src/pages/partner/my-leads.tsx, make sure the empty state has a "Submit Your First Lead" button linking to /partner/submit-lead. In client/src/pages/partner/commissions.tsx, add explanatory text about how commissions work when the list is empty.
+
+12. **CSV export sanitization**: In client/src/pages/admin/leads.tsx, find the CSV export function. Add a sanitize function that prefixes cells starting with =, +, -, or @ with a single quote to prevent CSV formula injection. Apply it to all cell values.
+
+Do each fix one at a time and verify it doesn't break anything. Do not touch server/index.ts, server/auth.ts, server/services/email.ts, or .env files.
