@@ -17,7 +17,7 @@ import { formatDate, formatCurrency } from "@/lib/format";
 
 interface Commission {
   id: string;
-  leadName: string;
+  leadContactName: string;
   amount: number;
   status: string;
   eligibleDate: string | null;
@@ -139,7 +139,8 @@ export default function Commissions() {
               </Link>
             </div>
           ) : (
-            <Table>
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <Table className="min-w-[500px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Lead</TableHead>
@@ -154,7 +155,7 @@ export default function Commissions() {
                 {commissions.map((commission) => (
                   <TableRow key={commission.id}>
                     <TableCell className="font-medium">
-                      {commission.leadName}
+                      {commission.leadContactName}
                     </TableCell>
                     <TableCell>{formatCurrency(commission.amount)}</TableCell>
                     <TableCell>
@@ -176,6 +177,7 @@ export default function Commissions() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

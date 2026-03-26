@@ -21,6 +21,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -61,6 +71,7 @@ export default function Partners() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [addOpen, setAddOpen] = useState(false);
+  const [suspendTarget, setSuspendTarget] = useState<Partner | null>(null);
   const [newPartner, setNewPartner] = useState({
     username: "", password: "", companyName: "", contactName: "",
     email: "", phone: "", programId: "", paymentMethod: "", paymentDetails: "",
@@ -172,7 +183,7 @@ export default function Partners() {
                             </Button>
                           )}
                           {partner.status === "active" && (
-                            <Button size="sm" variant="outline" className="text-red-600" onClick={() => statusMutation.mutate({ id: partner.id, status: "suspended" })}>
+                            <Button size="sm" variant="outline" className="text-red-600" onClick={() => setSuspendTarget(partner)}>
                               Suspend
                             </Button>
                           )}
@@ -273,6 +284,31 @@ export default function Partners() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!suspendTarget} onOpenChange={(open) => !open && setSuspendTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Suspend partner?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will suspend <strong>{suspendTarget?.companyName}</strong>. They will lose access to the partner portal until reactivated. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (suspendTarget) {
+                  statusMutation.mutate({ id: suspendTarget.id, status: "suspended" });
+                  setSuspendTarget(null);
+                }
+              }}
+            >
+              Suspend Partner
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

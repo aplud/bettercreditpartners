@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ type LeadForm = z.infer<typeof leadSchema>;
 
 export default function SubmitLead() {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const form = useForm<LeadForm>({
     resolver: zodResolver(leadSchema),
@@ -44,6 +46,7 @@ export default function SubmitLead() {
       });
       form.reset();
       queryClient.invalidateQueries({ queryKey: ["/api/partners/leads"] });
+      navigate("/partner/leads");
     },
     onError: (error: Error) => {
       if (error.message.includes("409")) {
@@ -78,7 +81,7 @@ export default function SubmitLead() {
         >
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="contactName">Contact Name</Label>
+              <Label htmlFor="contactName">Contact Name <span className="text-destructive">*</span></Label>
               <Input
                 id="contactName"
                 placeholder="Full name"
@@ -91,7 +94,7 @@ export default function SubmitLead() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
               <Input
                 id="email"
                 type="email"
@@ -105,7 +108,7 @@ export default function SubmitLead() {
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Phone <span className="text-destructive">*</span></Label>
               <Input
                 id="phone"
                 type="tel"
