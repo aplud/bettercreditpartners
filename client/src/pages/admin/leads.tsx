@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -34,11 +36,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { Building2, Mail, User, ExternalLink, Download } from "lucide-react";
+import { Building2, Mail, User, ExternalLink, Download, LayoutGrid, List, Plus } from "lucide-react";
 import { formatDate } from "@/lib/format";
+import { LeadKanban } from "@/components/lead-kanban";
 
 interface Lead {
   id: string;
@@ -65,6 +75,7 @@ const statusColors: Record<string, string> = {
   contacted: "bg-yellow-100 text-yellow-800",
   converted: "bg-green-100 text-green-800",
   lost: "bg-red-100 text-red-800",
+  cancelled: "bg-orange-100 text-orange-800",
 };
 
 const partnerStatusColors: Record<string, string> = {
@@ -84,6 +95,9 @@ export default function Leads() {
   const [partnerFilter, setPartnerFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [convertTarget, setConvertTarget] = useState<Lead | null>(null);
+  const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const [newLead, setNewLead] = useState({ contactName: "", email: "", phone: "", partnerId: "" });
 
   // Always fetch ALL leads — filter client-side so counts stay accurate
   const { data: allLeads, isLoading } = useQuery<Lead[]>({
@@ -129,6 +143,22 @@ export default function Leads() {
     },
   });
 
+  const submitLeadMutation = useMutation({
+    mutationFn: async (data: { contactName: string; email: string; phone: string; partnerId: string }) => {
+      await apiRequest("POST", `/api/admin/leads`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/dashboard-stats"] });
+      toast({ title: "Referral submitted successfully" });
+      setSubmitOpen(false);
+      setNewLead({ contactName: "", email: "", phone: "", partnerId: "" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
   // Get selected partner name for the filter display
   const selectedPartner = partners?.find((p) => p.id === partnerFilter);
 
@@ -137,6 +167,7 @@ export default function Leads() {
   const newLeads = partnerFiltered?.filter((l) => l.status === "new").length ?? 0;
   const contactedLeads = partnerFiltered?.filter((l) => l.status === "contacted").length ?? 0;
   const convertedLeads = partnerFiltered?.filter((l) => l.status === "converted").length ?? 0;
+  const cancelledLeads = partnerFiltered?.filter((l) => l.status === "cancelled").length ?? 0;
 
   // Sanitize a string to prevent CSV injection (cells starting with =, +, -, @)
   const sanitizeCSVField = (val: string): string => {
@@ -171,7 +202,10 @@ export default function Leads() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">All Leads</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Lead Pipeline</h1>
+          <p className="text-sm text-gray-500">Individual credit repair · Business credit building</p>
+        </div>
         <div className="flex items-center gap-2">
           {partnerFilter !== "all" && selectedPartner && (
             <Button
@@ -183,6 +217,60 @@ export default function Leads() {
               Showing {selectedPartner.companyName} &times;
             </Button>
           )}
+
+          {/* Submit Referral Dialog */}
+          <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5">
+                <Plus className="w-3.5 h-3.5" />
+                Submit Referral
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Submit a Referral</DialogTitle>
+              </DialogHeader>
+              <form
+                className="space-y-4 pt-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (newLead.contactName && newLead.email && newLead.partnerId) {
+                    submitLeadMutation.mutate(newLead);
+                  }
+                }}
+              >
+                <div>
+                  <Label>Partner <span className="text-red-400">*</span></Label>
+                  <Select value={newLead.partnerId} onValueChange={(v) => setNewLead({ ...newLead, partnerId: v })}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select a partner..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {partners?.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.companyName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Contact Name <span className="text-red-400">*</span></Label>
+                  <Input className="mt-1" value={newLead.contactName} onChange={(e) => setNewLead({ ...newLead, contactName: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Email <span className="text-red-400">*</span></Label>
+                  <Input type="email" className="mt-1" value={newLead.email} onChange={(e) => setNewLead({ ...newLead, email: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Phone</Label>
+                  <Input className="mt-1" placeholder="(555) 123-4567" value={newLead.phone} onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })} />
+                </div>
+                <Button type="submit" className="w-full" disabled={submitLeadMutation.isPending}>
+                  {submitLeadMutation.isPending ? "Submitting..." : "Submit Referral"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+
           <Button
             variant="outline"
             size="sm"
@@ -190,8 +278,24 @@ export default function Leads() {
             disabled={!leads || leads.length === 0}
           >
             <Download className="mr-1.5 h-3.5 w-3.5" />
-            Export CSV
+            Export
           </Button>
+
+          {/* View toggle */}
+          <div className="flex border rounded-lg overflow-hidden">
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={`p-1.5 ${viewMode === "kanban" ? "bg-gray-900 text-white" : "bg-white text-gray-400 hover:text-gray-600"}`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`p-1.5 ${viewMode === "table" ? "bg-gray-900 text-white" : "bg-white text-gray-400 hover:text-gray-600"}`}
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -237,6 +341,18 @@ export default function Leads() {
         >
           Converted ({convertedLeads})
         </button>
+        {cancelledLeads > 0 && (
+          <button
+            onClick={() => setStatusFilter("cancelled")}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              statusFilter === "cancelled"
+                ? "bg-orange-600 text-white"
+                : "bg-orange-50 text-orange-700 hover:bg-orange-100"
+            }`}
+          >
+            Cancelled ({cancelledLeads})
+          </button>
+        )}
       </div>
 
       {/* Partner filter */}
@@ -258,10 +374,21 @@ export default function Leads() {
         </div>
       </div>
 
-      <Card>
+      {/* Kanban View */}
+      {viewMode === "kanban" && !isLoading && leads && (
+        <LeadKanban leads={leads} />
+      )}
+      {viewMode === "kanban" && isLoading && (
+        <div className="grid grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-48 w-full rounded-xl" />)}
+        </div>
+      )}
+
+      {/* Table View */}
+      <Card className={viewMode === "kanban" ? "mt-4" : ""}>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">
-            {leads?.length ?? 0} {(leads?.length ?? 0) === 1 ? "lead" : "leads"}
+            {viewMode === "kanban" ? "All Referrals" : `${leads?.length ?? 0} ${(leads?.length ?? 0) === 1 ? "lead" : "leads"}`}
             {partnerFilter !== "all" && selectedPartner
               ? ` from ${selectedPartner.companyName}`
               : ""}
@@ -396,7 +523,17 @@ export default function Leads() {
                             Mark Converted
                           </Button>
                         )}
-                        {lead.status !== "lost" && lead.status !== "converted" && (
+                        {lead.status === "converted" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs text-orange-600 hover:text-orange-700"
+                            onClick={() => statusMutation.mutate({ id: lead.id, status: "cancelled" })}
+                          >
+                            Cancel / Refund
+                          </Button>
+                        )}
+                        {lead.status !== "lost" && lead.status !== "converted" && lead.status !== "cancelled" && (
                           <Button
                             size="sm"
                             variant="ghost"

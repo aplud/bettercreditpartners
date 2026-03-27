@@ -42,6 +42,8 @@ interface PartnerDetailResponse {
   };
   leads: Lead[];
   commissions: Commission[];
+  agreementSigned: boolean;
+  agreementSignedAt: string | null;
 }
 
 interface Lead {
@@ -108,6 +110,8 @@ export default function PartnerDetailPage() {
     programName: detailData.program?.name ?? "",
     leads: detailData.leads ?? [],
     commissions: detailData.commissions ?? [],
+    agreementSigned: detailData.agreementSigned ?? false,
+    agreementSignedAt: detailData.agreementSignedAt ?? null,
   } : null;
 
   const leadStatusMutation = useMutation({
@@ -215,9 +219,10 @@ export default function PartnerDetailPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Partner Information</CardTitle>
           <div className="flex gap-2">
-            {partner.status === "pending" && (
+            {!partner.agreementSigned && (
               <Button
                 size="sm"
+                className="bg-[#123f56] hover:bg-[#0e3245]"
                 onClick={() => markAgreementMutation.mutate()}
                 disabled={markAgreementMutation.isPending}
               >
@@ -261,7 +266,24 @@ export default function PartnerDetailPage() {
               {partner.paymentMethod ?? "Not set"}{" "}
               {partner.paymentDetails ? `(${partner.paymentDetails})` : ""}
             </div>
+            <div>
+              <span className="text-muted-foreground">Agreement:</span>{" "}
+              {partner.agreementSigned ? (
+                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  Signed {partner.agreementSignedAt ? `on ${formatDate(partner.agreementSignedAt)}` : ""}
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="bg-red-100 text-red-800">
+                  Not Signed
+                </Badge>
+              )}
+            </div>
           </div>
+          {!partner.agreementSigned && (
+            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+              This partner has <strong>not signed</strong> their partner agreement. They can still submit leads, but commissions will not be paid until the agreement is signed.
+            </div>
+          )}
         </CardContent>
       </Card>
 

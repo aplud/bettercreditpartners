@@ -51,9 +51,13 @@ interface Partner {
   email: string;
   status: string;
   programName: string;
-  leadCount: number;
-  convertedCount: number;
-  totalEarned: number;
+  agreementSigned: boolean;
+  stats: {
+    leadCount: number;
+    convertedCount: number;
+    totalEarned: number;
+    pendingAmount: number;
+  };
 }
 
 interface Program {
@@ -116,92 +120,166 @@ export default function Partners() {
     },
   });
 
+  const [search, setSearch] = useState("");
+  const [statusFilterVal, setStatusFilterVal] = useState<string>("all");
+
+  const filteredPartners = partners?.filter((p) => {
+    const matchesSearch = !search || p.companyName.toLowerCase().includes(search.toLowerCase()) || p.contactName.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilterVal === "all" || p.status === statusFilterVal;
+    return matchesSearch && matchesStatus;
+  });
+
+  const getTier = (leads: number) => {
+    if (leads >= 30) return { label: "Platinum", color: "bg-purple-100 text-purple-700 border-purple-200" };
+    if (leads >= 20) return { label: "Gold", color: "bg-amber-100 text-amber-700 border-amber-200" };
+    if (leads >= 10) return { label: "Silver", color: "bg-gray-100 text-gray-600 border-gray-200" };
+    return { label: "Bronze", color: "bg-orange-100 text-orange-700 border-orange-200" };
+  };
+
+  const AVATAR_COLORS = [
+    "from-blue-500 to-cyan-400",
+    "from-emerald-500 to-teal-400",
+    "from-purple-500 to-indigo-400",
+    "from-amber-500 to-orange-400",
+    "from-rose-500 to-pink-400",
+    "from-red-500 to-rose-400",
+    "from-indigo-500 to-blue-400",
+    "from-teal-500 to-emerald-400",
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">All Partners</h1>
-        <Button onClick={() => setAddOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Add Partner
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Partners</h1>
+          <p className="text-sm text-gray-500">Car dealers, financial advisors & referral partners</p>
+        </div>
+        <Button onClick={() => setAddOpen(true)} className="bg-[#123f56] hover:bg-[#0e3245]">
+          <Plus className="mr-2 h-4 w-4" /> Invite Partner
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Partners</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : !partners || partners.length === 0 ? (
-            <p className="text-muted-foreground text-sm py-8 text-center">
-              No partners registered yet.
-            </p>
-          ) : (
-            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-              <Table className="min-w-[600px]">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Program</TableHead>
-                    <TableHead>Leads</TableHead>
-                    <TableHead>Converted</TableHead>
-                    <TableHead>Earned</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {partners.map((partner) => (
-                    <TableRow
-                      key={partner.id}
-                      className="cursor-pointer"
-                      onClick={() => navigate(`/admin/partners/${partner.id}`)}
-                    >
-                      <TableCell className="font-medium">{partner.companyName}</TableCell>
-                      <TableCell>{partner.contactName}</TableCell>
-                      <TableCell>{partner.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className={statusColors[partner.status] ?? ""}>
-                          {partner.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{partner.programName}</TableCell>
-                      <TableCell>{partner.leadCount}</TableCell>
-                      <TableCell>{partner.convertedCount}</TableCell>
-                      <TableCell>{formatCurrency(partner.totalEarned)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                          {partner.status === "pending" && (
-                            <Button size="sm" variant="outline" onClick={() => statusMutation.mutate({ id: partner.id, status: "active" })}>
-                              Approve
-                            </Button>
-                          )}
-                          {partner.status === "active" && (
-                            <Button size="sm" variant="outline" className="text-red-600" onClick={() => setSuspendTarget(partner)}>
-                              Suspend
-                            </Button>
-                          )}
-                          {partner.status === "suspended" && (
-                            <Button size="sm" variant="outline" onClick={() => statusMutation.mutate({ id: partner.id, status: "active" })}>
-                              Reactivate
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Search + Filter */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <Input
+          placeholder="Search partners..."
+          className="max-w-xs"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {["all", "active", "pending", "suspended"].map((s) => (
+          <button
+            key={s}
+            onClick={() => setStatusFilterVal(s)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors capitalize ${
+              statusFilterVal === s
+                ? "bg-[#123f56] text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {s === "all" ? "All" : s}
+          </button>
+        ))}
+      </div>
+
+      {/* Info banner */}
+      <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 flex items-start gap-2">
+        <span className="text-lg">💡</span>
+        <p className="text-sm text-sky-800">
+          <strong>$50 paid per enrolled client</strong> — works for both individual credit repair AND business credit building. Partners earn automatically when their referral signs an enrollment agreement.
+        </p>
+      </div>
+
+      {/* Card Grid */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
+        </div>
+      ) : !filteredPartners || filteredPartners.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground text-sm">No partners found.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredPartners.map((partner, i) => {
+            const { leadCount = 0, convertedCount = 0, totalEarned = 0, pendingAmount = 0 } = partner.stats || {};
+            const tier = getTier(leadCount);
+            const convRate = leadCount > 0 ? Math.round((convertedCount / leadCount) * 100) : 0;
+
+            return (
+              <Card key={partner.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/admin/partners/${partner.id}`)}>
+                <CardContent className="p-5">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${AVATAR_COLORS[i % AVATAR_COLORS.length]} flex items-center justify-center text-white text-sm font-bold`}>
+                        {partner.contactName?.[0]?.toUpperCase() || partner.companyName?.[0]?.toUpperCase() || "?"}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">{partner.contactName || partner.companyName}</p>
+                        <p className="text-xs text-gray-400">{partner.companyName}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant="outline" className={`text-[10px] ${tier.color}`}>
+                        {tier.label}
+                      </Badge>
+                      {!partner.agreementSigned && (
+                        <span className="text-[9px] text-red-500 font-medium">No Agreement</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <div>
+                      <p className="text-lg font-bold text-blue-600">{leadCount}</p>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide">Referrals</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-emerald-600">{formatCurrency(totalEarned)}</p>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide">Paid Out</p>
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-amber-600">{convRate}%</p>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide">Conv.</p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => navigate(`/admin/partners/${partner.id}`)}>
+                        View
+                      </Button>
+                      {partner.status === "pending" && (
+                        <Button size="sm" variant="outline" className="h-7 text-xs text-emerald-600" onClick={() => statusMutation.mutate({ id: partner.id, status: "active" })}>
+                          Approve
+                        </Button>
+                      )}
+                      {partner.status === "active" && (
+                        <Button size="sm" variant="ghost" className="h-7 text-xs text-red-500" onClick={() => setSuspendTarget(partner)}>
+                          Suspend
+                        </Button>
+                      )}
+                      {partner.status === "suspended" && (
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => statusMutation.mutate({ id: partner.id, status: "active" })}>
+                          Reactivate
+                        </Button>
+                      )}
+                    </div>
+                    {pendingAmount > 0 && (
+                      <span className="text-xs font-medium text-cyan-600">{formatCurrency(pendingAmount)} due</span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">

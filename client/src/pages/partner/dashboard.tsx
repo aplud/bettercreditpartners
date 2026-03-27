@@ -11,10 +11,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Users, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { Users, CheckCircle, Clock, DollarSign, AlertTriangle } from "lucide-react";
 import { Link } from "wouter";
 import { PartnerOnboarding } from "@/components/partner-onboarding";
 import { formatDate, formatCurrency } from "@/lib/format";
+
+interface AgreementStatus {
+  status: string;
+  signed: boolean;
+}
 
 interface Lead {
   id: string;
@@ -39,6 +44,10 @@ export default function PartnerDashboard() {
     { commissions: Commission[]; program: unknown }
   >({
     queryKey: ["/api/partners/commissions"],
+  });
+
+  const { data: agreementData } = useQuery<AgreementStatus>({
+    queryKey: ["/api/partners/agreement-status"],
   });
 
   const commissions = commissionsData?.commissions;
@@ -66,6 +75,7 @@ export default function PartnerDashboard() {
     contacted: "bg-yellow-100 text-yellow-800",
     converted: "bg-green-100 text-green-800",
     lost: "bg-red-100 text-red-800",
+    cancelled: "bg-orange-100 text-orange-800",
   };
 
   const stats = [
@@ -107,6 +117,19 @@ export default function PartnerDashboard() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
+
+      {agreementData && !agreementData.signed && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-red-800">Partner Agreement Not Signed</p>
+            <p className="text-sm text-red-700 mt-1">
+              You can still submit leads, but <strong>commissions will not be paid</strong> until your partner agreement is signed.
+              Visit the <Link href="/partner/agreement" className="underline font-medium">Agreement page</Link> to sign.
+            </p>
+          </div>
+        </div>
+      )}
 
       <PartnerOnboarding />
 

@@ -41,6 +41,7 @@ import AdminPayouts from "@/pages/admin/payouts";
 import AdminSheetsSync from "@/pages/admin/sheets-sync";
 import AdminAuditLog from "@/pages/admin/audit-log";
 import AdminAccounts from "@/pages/admin/admin-accounts";
+import AdminReferralLinks from "@/pages/admin/referral-links";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -82,6 +83,7 @@ function AdminRoutes() {
           <Route path="/admin/payouts" component={AdminPayouts} />
           <Route path="/admin/accounts" component={AdminAccounts} />
           <Route path="/admin/sheets-sync" component={AdminSheetsSync} />
+          <Route path="/admin/referral-links" component={AdminReferralLinks} />
           <Route path="/admin/audit-log" component={AdminAuditLog} />
         </Switch>
       </AdminLayout>

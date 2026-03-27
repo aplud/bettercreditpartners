@@ -133,6 +133,39 @@ adminRouter.patch("/programs/:id/deactivate", async (req, res) => {
 
 // ── Phase 5: Commission Automation ────────────────────────────────────────────
 
+// Admin submit a lead on behalf of a partner
+adminRouter.post("/leads", async (req, res) => {
+  try {
+    const { contactName, email, phone, partnerId } = req.body;
+    if (!contactName || !email || !partnerId) {
+      return res.status(400).json({ message: "contactName, email, and partnerId are required" });
+    }
+    const partner = await storage.getPartner(partnerId);
+    if (!partner) {
+      return res.status(404).json({ message: "Partner not found" });
+    }
+    const lead = await storage.createLead({
+      contactName,
+      email,
+      phone: phone || "",
+      partnerId,
+      source: "form",
+      status: "new",
+    });
+    await storage.addAuditLog({
+      action: "create",
+      entityType: "lead",
+      entityId: lead.id,
+      userId: (req.user as any)?.id || "admin",
+      details: `Admin submitted lead: ${contactName}`,
+    });
+    return res.status(201).json(lead);
+  } catch (error) {
+    console.error("Error creating lead:", error);
+    return res.status(500).json({ message: "Failed to create lead" });
+  }
+});
+
 // Update lead status
 adminRouter.post("/leads/:id/status", async (req, res) => {
   try {
@@ -143,7 +176,7 @@ adminRouter.post("/leads/:id/status", async (req, res) => {
       return res.status(400).json({ message: "status is required" });
     }
 
-    const validStatuses = ["new", "contacted", "converted", "lost"];
+    const validStatuses = ["new", "contacted", "converted", "lost", "cancelled"];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: "Invalid status value" });
     }
@@ -153,12 +186,13 @@ adminRouter.post("/leads/:id/status", async (req, res) => {
       return res.status(404).json({ message: "Lead not found" });
     }
 
-    // Validate transitions: new->contacted, contacted->converted, any->lost
+    // Validate transitions: new->contacted, contacted->converted, converted->cancelled, any->lost
     const allowedTransitions: Record<string, string[]> = {
       new: ["contacted", "lost"],
       contacted: ["converted", "lost"],
-      converted: ["lost"],
+      converted: ["lost", "cancelled"],
       lost: ["lost"],
+      cancelled: [],
     };
 
     const allowed = allowedTransitions[lead.status];
@@ -170,6 +204,25 @@ adminRouter.post("/leads/:id/status", async (req, res) => {
 
     const convertedAt = status === "converted" ? new Date() : undefined;
     const updated = await storage.updateLeadStatus(id, status, convertedAt);
+
+    // When a lead is cancelled, auto-void any associated commission
+    if (status === "cancelled") {
+      const allCommissions = await storage.getAllCommissions();
+      const leadCommissions = allCommissions.filter(
+        (c: any) => c.leadId === id && (c.status === "pending_retention" || c.status === "eligible")
+      );
+      for (const commission of leadCommissions) {
+        await storage.transitionCommissionStatus(commission.id, "voided", "Client cancelled / refunded before 91 days");
+        await storage.createAuditEntry({
+          userId: req.user!.id,
+          action: "void_commission",
+          entityType: "commission",
+          entityId: commission.id,
+          details: `Auto-voided: lead ${id} cancelled/refunded`,
+        });
+      }
+      markDirty("commissions");
+    }
 
     await storage.createAuditEntry({
       userId: req.user!.id,
@@ -379,8 +432,13 @@ adminRouter.get("/partners", async (_req, res) => {
           .filter((c) => ["pending_retention", "eligible"].includes(c.status))
           .reduce((sum, c) => sum + c.amount, 0);
 
+        // Agreement status
+        const agreement = await storage.getAgreementByPartner(partner.id);
+        const agreementSigned = agreement?.status === "signed";
+
         return {
           ...partner,
+          agreementSigned,
           stats: {
             leadCount,
             convertedCount,
@@ -410,6 +468,7 @@ adminRouter.get("/partners/:id", async (req, res) => {
     const partnerLeads = await storage.getLeadsByPartner(id);
     const partnerCommissions = await storage.getCommissionsByPartner(id);
     const program = await storage.getProgram(partner.programId);
+    const agreement = await storage.getAgreementByPartner(id);
 
     // Enrich commissions with lead contact names
     const leadMap = new Map(partnerLeads.map((l) => [l.id, l]));
@@ -423,6 +482,8 @@ adminRouter.get("/partners/:id", async (req, res) => {
       program,
       leads: partnerLeads,
       commissions: enrichedCommissions,
+      agreementSigned: agreement?.status === "signed",
+      agreementSignedAt: agreement?.signedAt ?? null,
     });
   } catch (error) {
     console.error("Error fetching partner detail:", error);
@@ -709,13 +770,86 @@ adminRouter.get("/dashboard-stats", async (_req, res) => {
       .filter((c) => c.status === "paid")
       .reduce((sum, c) => sum + c.amount, 0);
 
+    // Leads by status for chart
+    const statusCounts: Record<string, number> = {};
+    for (const lead of allLeads) {
+      statusCounts[lead.status] = (statusCounts[lead.status] || 0) + 1;
+    }
+    const leadsByStatus = Object.entries(statusCounts).map(([status, count]) => ({ status, count }));
+
+    // Monthly referrals (last 12 months)
+    const now = new Date();
+    const monthlyReferrals: Array<{ month: string; count: number }> = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = d.toLocaleString("en-US", { month: "short" });
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const count = allLeads.filter((l) => {
+        const ld = new Date(l.createdAt);
+        return ld.getFullYear() === year && ld.getMonth() === month;
+      }).length;
+      monthlyReferrals.push({ month: monthKey, count });
+    }
+
+    // Monthly commissions (last 12 months)
+    const monthlyCommissions: Array<{ month: string; amount: number }> = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = d.toLocaleString("en-US", { month: "short" });
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const amount = allCommissions
+        .filter((c) => {
+          const cd = new Date(c.createdAt);
+          return cd.getFullYear() === year && cd.getMonth() === month;
+        })
+        .reduce((sum, c) => sum + c.amount, 0);
+      monthlyCommissions.push({ month: monthKey, amount });
+    }
+
+    // Top partners by lead count with commission data
+    const partnerLeadMap = new Map<string, number>();
+    const partnerConvertedMap = new Map<string, number>();
+    for (const lead of allLeads) {
+      if (lead.partnerId) {
+        partnerLeadMap.set(lead.partnerId, (partnerLeadMap.get(lead.partnerId) || 0) + 1);
+        if (lead.status === "converted") {
+          partnerConvertedMap.set(lead.partnerId, (partnerConvertedMap.get(lead.partnerId) || 0) + 1);
+        }
+      }
+    }
+    const partnerCommissionMap = new Map<string, number>();
+    for (const c of allCommissions) {
+      if (c.partnerId) {
+        partnerCommissionMap.set(c.partnerId, (partnerCommissionMap.get(c.partnerId) || 0) + c.amount);
+      }
+    }
+    const topPartners = allPartners
+      .map((p) => ({
+        id: p.id,
+        name: p.contactName || p.companyName,
+        company: p.companyName,
+        leads: partnerLeadMap.get(p.id) || 0,
+        converted: partnerConvertedMap.get(p.id) || 0,
+        earned: partnerCommissionMap.get(p.id) || 0,
+        status: p.status,
+      }))
+      .sort((a, b) => b.earned - a.earned)
+      .slice(0, 5);
+
     return res.json({
       activePartners,
+      totalPartners: allPartners.length,
       totalLeads,
       convertedLeads,
       conversionRate: Math.round(conversionRate * 100) / 100,
       pendingCommissions,
       paidCommissions,
+      leadsByStatus,
+      monthlyReferrals,
+      monthlyCommissions,
+      topPartners,
     });
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);

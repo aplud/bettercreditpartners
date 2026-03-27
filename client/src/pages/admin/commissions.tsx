@@ -29,23 +29,28 @@ import {
 } from "@/components/ui/dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Clock, AlertTriangle, CheckCircle, XCircle, DollarSign } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/format";
 
 interface Commission {
   id: string;
-  partnerName: string;
-  leadName: string;
+  partnerId: string;
+  leadId: string;
   amount: number;
+  retentionDays: number;
   status: string;
-  eligibleDate: string | null;
-  paidDate: string | null;
-  quarter: string;
+  eligibleAt: string | null;
+  paidAt: string | null;
+  payoutQuarter: string | null;
+  voidedReason: string | null;
+  createdAt: string;
+  leadContactName: string;
 }
 
 interface PartnerOption {
   id: string;
   companyName: string;
+  contactName: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -61,6 +66,29 @@ const statusLabels: Record<string, string> = {
   paid: "Paid",
   voided: "Voided",
 };
+
+const statusIcons: Record<string, typeof Clock> = {
+  pending_retention: Clock,
+  eligible: CheckCircle,
+  paid: DollarSign,
+  voided: XCircle,
+};
+
+function getRetentionInfo(commission: Commission) {
+  if (commission.status !== "pending_retention") return null;
+  const created = new Date(commission.createdAt).getTime();
+  const retentionMs = (commission.retentionDays || 91) * 24 * 60 * 60 * 1000;
+  const eligibleDate = new Date(created + retentionMs);
+  const daysElapsed = Math.floor((Date.now() - created) / (24 * 60 * 60 * 1000));
+  const daysRemaining = Math.max(0, commission.retentionDays - daysElapsed);
+  const progress = Math.min(100, Math.round((daysElapsed / commission.retentionDays) * 100));
+  return { eligibleDate, daysElapsed, daysRemaining, progress };
+}
+
+function getQuarterLabel(date: Date): string {
+  const q = Math.ceil((date.getMonth() + 1) / 3);
+  return `Q${q} ${date.getFullYear()}`;
+}
 
 export default function AdminCommissions() {
   const { toast } = useToast();
@@ -82,6 +110,8 @@ export default function AdminCommissions() {
   const { data: partners } = useQuery<PartnerOption[]>({
     queryKey: ["/api/admin/partners"],
   });
+
+  const partnerMap = new Map((partners ?? []).map((p) => [p.id, p]));
 
   const voidMutation = useMutation({
     mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
@@ -112,10 +142,20 @@ export default function AdminCommissions() {
     },
   });
 
+  // Summary stats
+  const inRetention = commissions?.filter((c) => c.status === "pending_retention").length ?? 0;
+  const eligible = commissions?.filter((c) => c.status === "eligible").length ?? 0;
+  const paid = commissions?.filter((c) => c.status === "paid").length ?? 0;
+  const voided = commissions?.filter((c) => c.status === "voided").length ?? 0;
+  const eligibleAmount = commissions?.filter((c) => c.status === "eligible").reduce((s, c) => s + c.amount, 0) ?? 0;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Commission Tracker</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Commission Tracker</h1>
+          <p className="text-sm text-gray-500">Track retention periods, eligibility & quarterly payouts</p>
+        </div>
         <Button
           variant="outline"
           onClick={() => retentionMutation.mutate()}
@@ -126,6 +166,46 @@ export default function AdminCommissions() {
         </Button>
       </div>
 
+      {/* Info banner */}
+      <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 flex items-start gap-2">
+        <Clock className="w-4 h-4 text-sky-500 mt-0.5 flex-shrink-0" />
+        <p className="text-sm text-sky-800">
+          <strong>91-day retention period.</strong> When a lead enrolls, a commission is created in "In Retention" status.
+          After 91 days without cancellation, it becomes "Eligible" for quarterly payout.
+          If the client cancels or requests a refund before 91 days, void the commission.
+        </p>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="border-l-4 border-l-yellow-400">
+          <CardContent className="p-4">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide">In Retention</p>
+            <p className="text-2xl font-bold text-yellow-700">{inRetention}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-blue-400">
+          <CardContent className="p-4">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Eligible for Payout</p>
+            <p className="text-2xl font-bold text-blue-700">{eligible}</p>
+            {eligibleAmount > 0 && <p className="text-xs text-blue-500">{formatCurrency(eligibleAmount)} ready</p>}
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-green-400">
+          <CardContent className="p-4">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Paid Out</p>
+            <p className="text-2xl font-bold text-green-700">{paid}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-red-400">
+          <CardContent className="p-4">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide">Voided</p>
+            <p className="text-2xl font-bold text-red-700">{voided}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
       <div className="flex gap-4">
         <div className="w-48">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -158,6 +238,7 @@ export default function AdminCommissions() {
         </div>
       </div>
 
+      {/* Commissions table */}
       <Card>
         <CardHeader>
           <CardTitle>Commissions</CardTitle>
@@ -175,54 +256,111 @@ export default function AdminCommissions() {
             </p>
           ) : (
             <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-              <Table className="min-w-[600px]">
+              <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Partner</TableHead>
                     <TableHead>Lead</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Eligible Date</TableHead>
-                    <TableHead>Paid Date</TableHead>
-                    <TableHead>Quarter</TableHead>
+                    <TableHead>Became Client</TableHead>
+                    <TableHead>Retention</TableHead>
+                    <TableHead>Payout Quarter</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {commissions.map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-medium">{c.partnerName}</TableCell>
-                      <TableCell>{c.leadName}</TableCell>
-                      <TableCell>{formatCurrency(c.amount)}</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className={statusColors[c.status] ?? ""}>
-                          {statusLabels[c.status] ?? c.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(c.eligibleDate)}
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(c.paidDate)}
-                      </TableCell>
-                      <TableCell>{c.quarter}</TableCell>
-                      <TableCell>
-                        {c.status !== "voided" && c.status !== "paid" && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-red-600"
-                            onClick={() => {
-                              setVoidingId(c.id);
-                              setVoidDialogOpen(true);
-                            }}
-                          >
-                            Void
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {commissions.map((c) => {
+                    const partner = partnerMap.get(c.partnerId);
+                    const retention = getRetentionInfo(c);
+                    const StatusIcon = statusIcons[c.status] ?? Clock;
+
+                    return (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-medium">
+                          {partner?.contactName || partner?.companyName || "-"}
+                        </TableCell>
+                        <TableCell>{c.leadContactName}</TableCell>
+                        <TableCell>{formatCurrency(c.amount)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <StatusIcon className="w-3.5 h-3.5" />
+                            <Badge variant="secondary" className={statusColors[c.status] ?? ""}>
+                              {statusLabels[c.status] ?? c.status}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs text-gray-500">
+                          {formatDate(c.createdAt)}
+                        </TableCell>
+                        <TableCell>
+                          {c.status === "pending_retention" && retention ? (
+                            <div className="space-y-1 min-w-[140px]">
+                              <div className="flex justify-between text-[10px]">
+                                <span className="text-gray-500">Day {retention.daysElapsed} of {c.retentionDays}</span>
+                                <span className="font-medium text-amber-600">{retention.daysRemaining}d left</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                <div
+                                  className="bg-amber-500 h-1.5 rounded-full transition-all"
+                                  style={{ width: `${retention.progress}%` }}
+                                />
+                              </div>
+                              <p className="text-[10px] text-gray-400">
+                                Eligible {retention.eligibleDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                              </p>
+                            </div>
+                          ) : c.status === "eligible" ? (
+                            <span className="text-xs text-blue-600 font-medium">Passed 91 days</span>
+                          ) : c.status === "paid" ? (
+                            <span className="text-xs text-green-600">{formatDate(c.paidAt)}</span>
+                          ) : c.status === "voided" ? (
+                            <span className="text-xs text-red-500" title={c.voidedReason ?? ""}>
+                              {c.voidedReason ? c.voidedReason.substring(0, 30) : "Voided"}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          {c.payoutQuarter || (c.status === "eligible"
+                            ? getQuarterLabel(new Date())
+                            : c.status === "pending_retention" && retention
+                            ? getQuarterLabel(retention.eligibleDate)
+                            : "-"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {c.status === "pending_retention" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-600 text-xs"
+                              onClick={() => {
+                                setVoidingId(c.id);
+                                setVoidDialogOpen(true);
+                              }}
+                            >
+                              Cancel / Refund
+                            </Button>
+                          )}
+                          {c.status === "eligible" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-600 text-xs"
+                              onClick={() => {
+                                setVoidingId(c.id);
+                                setVoidDialogOpen(true);
+                              }}
+                            >
+                              Void
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -230,11 +368,18 @@ export default function AdminCommissions() {
         </CardContent>
       </Card>
 
+      {/* Void dialog */}
       <Dialog open={voidDialogOpen} onOpenChange={(open) => { setVoidDialogOpen(open); if (!open) { setVoidingId(null); setVoidReason(""); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Void Commission</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              Void Commission
+            </DialogTitle>
           </DialogHeader>
+          <p className="text-sm text-gray-500">
+            This will void the commission. Use this when a client cancels their enrollment or requests a refund before the 91-day retention period.
+          </p>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -245,15 +390,26 @@ export default function AdminCommissions() {
             className="space-y-4"
           >
             <div className="space-y-2">
-              <Label htmlFor="voidReason">Reason for voiding</Label>
-              <Input
-                id="voidReason"
-                value={voidReason}
-                onChange={(e) => setVoidReason(e.target.value)}
-                required
-              />
+              <Label htmlFor="voidReason">Reason</Label>
+              <Select onValueChange={setVoidReason} value={voidReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a reason..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Client cancelled before 91 days">Client cancelled before 91 days</SelectItem>
+                  <SelectItem value="Client requested refund">Client requested refund</SelectItem>
+                  <SelectItem value="Duplicate commission">Duplicate commission</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              {voidReason === "Other" && (
+                <Input
+                  placeholder="Describe reason..."
+                  onChange={(e) => setVoidReason(e.target.value)}
+                />
+              )}
             </div>
-            <Button type="submit" variant="destructive" className="w-full" disabled={voidMutation.isPending}>
+            <Button type="submit" variant="destructive" className="w-full" disabled={voidMutation.isPending || !voidReason}>
               {voidMutation.isPending ? "Voiding..." : "Void Commission"}
             </Button>
           </form>
