@@ -76,7 +76,7 @@ adminRouter.patch("/programs/:id", async (req, res) => {
       return res.status(404).json({ message: "Program not found" });
     }
 
-    const allowedFields = ["name", "commissionAmount", "retentionDays", "payoutSchedule", "description", "signnowTemplateId"];
+    const allowedFields = ["name", "commissionAmount", "retentionDays", "payoutSchedule", "description", "signnowTemplateId", "isActive"];
     const updates: Record<string, unknown> = {};
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
