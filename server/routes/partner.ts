@@ -101,6 +101,7 @@ partnerRouter.post("/register", partnerRegisterLimiter, async (req, res, next) =
         const signnowResult = await createSigningInvite(
           program.signnowTemplateId,
           `Partner Agreement - ${companyName} - ${Date.now()}`,
+          { isGroupTemplate: true },
         );
         signingLink = signnowResult.signingLink;
 
@@ -203,6 +204,7 @@ partnerRouter.post("/agreement-signing-link", requireAuth, requireRole("partner"
     const signnowResult = await createSigningInvite(
       program.signnowTemplateId,
       `Partner Agreement - ${partner.companyName} - ${Date.now()}`,
+      { isGroupTemplate: true },
     );
 
     if (!agreement) {

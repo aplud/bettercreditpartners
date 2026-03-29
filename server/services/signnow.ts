@@ -22,13 +22,35 @@ export async function signnowFetch(path: string, options: RequestInit = {}) {
   return res.json();
 }
 
-export async function createSigningInvite(templateId: string, documentName: string) {
-  // Step 1: Copy template
-  const copyResponse = await signnowFetch(`/template/${templateId}/copy`, {
-    method: "POST",
-    body: JSON.stringify({ document_name: documentName }),
-  });
-  const documentId = copyResponse.id;
+export async function createSigningInvite(
+  templateId: string,
+  documentName: string,
+  options?: { isGroupTemplate?: boolean }
+) {
+  let documentId: string;
+
+  if (options?.isGroupTemplate) {
+    // Step 1a: Copy document group template
+    const groupCopyResponse = await signnowFetch(`/documentgroup/template/${templateId}/copy`, {
+      method: "POST",
+      body: JSON.stringify({ group_name: documentName }),
+    });
+    // Extract the first document from the group
+    const documents = groupCopyResponse.documents || groupCopyResponse.document_ids || [];
+    const firstDoc = typeof documents[0] === "string" ? documents[0] : documents[0]?.id;
+    if (!firstDoc) {
+      console.error("Document group copy response:", JSON.stringify(groupCopyResponse));
+      throw new Error("No documents found in copied document group");
+    }
+    documentId = firstDoc;
+  } else {
+    // Step 1b: Copy single document template
+    const copyResponse = await signnowFetch(`/template/${templateId}/copy`, {
+      method: "POST",
+      body: JSON.stringify({ document_name: documentName }),
+    });
+    documentId = copyResponse.id;
+  }
 
   // Step 2: Get document details
   const docDetails = await signnowFetch(`/document/${documentId}`);
