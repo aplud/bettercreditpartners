@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Talking Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,400..700,0..100,0..1;1,9..144,400..700,0..100,0..1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F3E6CF; --card:#FCF5E6; --ink:#3B2A1E; --muted:#86705C; --line:#3B2A1E;
+    --accent:#D9622B; --accent-soft:#F7D9B8; --mustard:#E8A93B; --olive:#7C8B4A; --sage-soft:#E6E3C4; --rust:#A8432A;
+    --radius:22px; --shadow:4px 4px 0 var(--ink);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,sans-serif;font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);min-height:100vh;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.23 0 0 0 0 0.16 0 0 0 0 0.12 0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+  .wrap{max-width:560px;margin:0 auto;padding:26px 20px 130px}
+  h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:700;font-variation-settings:"SOFT" 100,"WONK" 1;letter-spacing:-.01em}
+  h1{font-size:34px;line-height:1.1}
+  h2{font-size:26px;line-height:1.15}
+  h3{font-size:19px}
+  .muted{color:var(--muted)}
+  .small{font-size:13.5px}
+  .eyebrow{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--rust)}
+  button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;border-radius:999px;font-weight:700;font-size:16px;border:2.5px solid var(--ink);transition:transform .08s,box-shadow .08s}
+  .btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)!important}
+  .btn-primary{background:var(--accent);color:#FFF6E8;box-shadow:var(--shadow)}
+  .btn-primary:disabled{background:#E3B796;color:#FBEBD8;cursor:default}
+  .btn-ghost{background:transparent;color:var(--muted);border-color:transparent}
+  .btn-soft{background:var(--mustard);color:var(--ink);box-shadow:3px 3px 0 var(--ink)}
+  .btn-block{width:100%}
+  .row{display:flex;align-items:center;gap:10px}
+  .between{justify-content:space-between}
+  .stack>*+*{margin-top:16px}
+  .card{background:var(--card);border-radius:var(--radius);border:2.5px solid var(--ink);box-shadow:var(--shadow);padding:18px}
+  .back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:15px;font-weight:600;margin-bottom:18px}
+  .hidden{display:none!important}
+
+  /* retro stripes */
+  .stripes{display:flex;flex-direction:column;gap:4px;width:64px}
+  .stripes i{display:block;height:7px;border-radius:999px}
+  .stripes i:nth-child(1){background:var(--rust)}
+  .stripes i:nth-child(2){background:var(--accent)}
+  .stripes i:nth-child(3){background:var(--mustard)}
+  .stripes i:nth-child(4){background:var(--olive)}
+
+  /* Home */
+  .hero{margin:4px 0 24px;position:relative}
+  .hero .stripes{margin-bottom:14px}
+  .hero p{margin-top:6px;font-size:17px}
+  .start{display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 18px 26px;text-align:center;background:var(--mustard);position:relative;overflow:hidden}
+  .start::before{content:"";position:absolute;left:50%;top:84px;width:520px;height:520px;transform:translate(-50%,-50%);
+    background:repeating-conic-gradient(from 0deg,rgba(255,246,232,.22) 0 10deg,transparent 10deg 20deg);border-radius:50%;pointer-events:none}
+  .start>*{position:relative}
+  .start .muted{color:#5A4330}
+  .mic-big{width:92px;height:92px;border-radius:50%;background:var(--accent);color:#FFF6E8;display:grid;place-items:center;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink)}
+  .mic-big svg{width:38px;height:38px}
+  .stats{display:flex;gap:12px;margin:20px 0 28px}
+  .stat{flex:1;background:var(--card);border-radius:18px;padding:12px 16px;border:2.5px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+  .stat:nth-child(2){background:var(--sage-soft)}
+  .stat b{font-family:Fraunces,serif;font-variation-settings:"SOFT" 100,"WONK" 1;font-size:28px;display:block;line-height:1.1}
+  .list-h{margin:4px 0 14px}
+  .entry-card{display:block;width:100%;text-align:left}
+  .entry-card + .entry-card{margin-top:14px}
+  .entry-card:nth-child(3n+2){background:#FBEAD3}
+  .entry-card:nth-child(3n+3){background:#F0EDD3}
+  .entry-card .date{font-size:13px;color:var(--muted);font-weight:600}
+  .entry-card h3{margin:4px 0 4px}
+  .entry-card p{font-size:14.5px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .moods{font-size:18px;letter-spacing:2px}
+  .empty{text-align:center;padding:30px 10px;color:var(--muted);font-style:italic}
+
+  /* Mood */
+  .chips{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:20px}
+  .chip{display:flex;align-items:center;gap:10px;padding:14px;border-radius:18px;background:var(--card);border:2.5px solid var(--ink);box-shadow:3px 3px 0 var(--ink);font-weight:600;text-align:left;transition:transform .08s}
+  .chip span{font-size:24px}
+  .chip.on{background:var(--mustard);transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  input.text,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:2.5px solid var(--ink);border-radius:18px;padding:14px 16px;outline:none;box-shadow:inset 0 2px 0 rgba(59,42,30,.06)}
+  input.text:focus,textarea:focus{background:#FFFBF2;box-shadow:3px 3px 0 var(--accent)}
+  textarea{min-height:250px;resize:vertical;line-height:1.7;
+    background-image:repeating-linear-gradient(transparent 0 26.2px,rgba(168,67,42,.13) 26.2px 27.2px);background-attachment:local;background-position:0 14px}
+  ::placeholder{color:#B39E88}
+  .sticky-foot{position:fixed;left:0;right:0;bottom:0;padding:14px 20px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 70%,rgba(243,230,207,0))}
+  .sticky-foot .inner{max-width:560px;margin:0 auto;display:flex;gap:10px}
+
+  /* Talk */
+  .talk-box{position:relative}
+  .partial{color:var(--muted);font-style:italic;min-height:22px;margin-top:8px;font-size:15px}
+  .mic-row{display:flex;align-items:center;gap:14px;margin:20px 0 6px}
+  .mic{width:66px;height:66px;border-radius:50%;background:var(--accent);color:#FFF6E8;display:grid;place-items:center;flex:none;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+  .mic svg{width:28px;height:28px}
+  .mic.live{background:var(--rust);animation:pulse 1.4s infinite}
+  @keyframes pulse{0%{outline:0 solid rgba(217,98,43,.5)}70%{outline:14px solid rgba(217,98,43,0)}100%{outline:0 solid rgba(217,98,43,0)}}
+  .tip{background:var(--sage-soft);color:#4E5A2C;border:2px solid var(--olive);border-radius:16px;padding:12px 14px;font-size:14.5px;font-weight:500}
+
+  /* Choose */
+  .opt{display:flex;gap:14px;align-items:flex-start;width:100%;text-align:left;padding:18px;transition:transform .08s}
+  .opt + .opt{margin-top:14px}
+  .opt .ic{font-size:28px;line-height:1}
+  .opt b{display:block;font-size:17px;font-family:Fraunces,serif;font-variation-settings:"SOFT" 100,"WONK" 1}
+  .opt.on{background:var(--mustard);transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+  .opt.on .muted{color:#5A4330}
+
+  /* Loading */
+  .loading{text-align:center;padding:80px 10px}
+  .dots{display:inline-flex;gap:10px;margin-bottom:20px}
+  .dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink);animation:b 1.2s infinite}
+  .dots i:nth-child(1){background:var(--accent)}.dots i:nth-child(2){background:var(--mustard);animation-delay:.15s}.dots i:nth-child(3){background:var(--olive);animation-delay:.3s}
+  @keyframes b{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-8px)}}
+
+  /* Entry */
+  .entry-head .date{color:var(--muted);font-size:14px;font-weight:600;margin-bottom:6px}
+  .mood-tags{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+  .tag{background:var(--mustard);border:2px solid var(--ink);border-radius:999px;padding:3px 12px;font-size:14px;font-weight:600}
+  .summary{font-family:Fraunces,serif;font-variation-settings:"SOFT" 100,"WONK" 0;font-style:italic;font-size:20px;line-height:1.45;margin:20px 0 6px}
+  .section h3{margin-bottom:8px}
+  .section ul{padding-left:20px}
+  .section li::marker{color:var(--accent)}
+  .section li+li{margin-top:6px}
+  .highlights{background:var(--sage-soft)}
+  .highlights h3{color:#4E5A2C}
+  .reflection{background:#FBDCC3}
+  .reflection p{font-size:16px}
+  .question{background:var(--card);border-style:dashed}
+  .question .q{font-family:Fraunces,serif;font-variation-settings:"SOFT" 100,"WONK" 1;font-size:20px;margin:6px 0 16px}
+  details{margin-top:2px}
+  summary{cursor:pointer;color:var(--muted);font-size:14px;font-weight:600;padding:4px 0}
+  .raw{white-space:pre-wrap;font-size:14.5px;color:var(--muted);padding-top:8px}
+  .follow{border-top:2px dotted rgba(59,42,30,.3);padding-top:12px;margin-top:12px}
+  .follow b{font-family:Fraunces,serif;font-weight:700}
+  .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+  .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:#FFF6E8;padding:10px 18px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;z-index:20}
+  .toast.show{opacity:1}
+  .modal{position:fixed;inset:0;background:rgba(59,42,30,.45);display:grid;place-items:center;padding:20px;z-index:30}
+  .modal .card{max-width:360px;width:100%}
+  .notice{background:#FBE3B4;color:#6E4A16;border:2px solid var(--ink);border-radius:14px;padding:10px 14px;font-size:13.5px;margin-bottom:18px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const MOODS = [
+    ["😊","Happy"],["😌","Calm"],["🥰","Grateful"],["😴","Tired"],
+    ["😤","Frustrated"],["😟","Anxious"],["😢","Sad"],["🤯","Overwhelmed"]
+  ];
+  const MIC_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><path d="M12 18v4"/></svg>';
+  const STOP_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+
+  const app = document.getElementById("app");
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+  // ---------- State ----------
+  let entries = [];
+  let loaded = false;
+  let storeMode = "pending"; // "db" | "local" | "pending"
+  let db = null, uid = null, sample = null, dict = null;
+  let view = "home";
+  let draft = null; // {id, createdAt, moods:[], moodWord, raw, followups:[], mode, entry}
+  let openId = null;
+  let pendingQuestion = null;
+
+  // ---------- Local fallback ----------
+  const LS_KEY = "talking-journal-entries";
+  const DRAFT_KEY = "talking-journal-draft";
+  const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  const lsDel = k => { try { localStorage.removeItem(k); } catch {} };
+
+  // ---------- Helpers ----------
+  function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2200); }
+  function fmtDate(iso, opts){ return new Date(iso).toLocaleDateString(undefined, opts || {weekday:"long", month:"long", day:"numeric", year:"numeric"}); }
+  function fmtTime(iso){ return new Date(iso).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"}); }
+  function greeting(){ const h=new Date().getHours(); return h<12?"Good morning":h<17?"Good afternoon":"Good evening"; }
+  function dayKey(d){ const x=new Date(d); return x.getFullYear()+"-"+(x.getMonth()+1)+"-"+x.getDate(); }
+  function streak(){
+    const days = new Set(entries.map(e=>dayKey(e.createdAt)));
+    let n=0; const d=new Date();
+    if(!days.has(dayKey(d))) d.setDate(d.getDate()-1);
+    while(days.has(dayKey(d))){ n++; d.setDate(d.getDate()-1); }
+    return n;
+  }
+  function moodEmojis(e){ return (e.moods||[]).map(m => (MOODS.find(x=>x[1]===m)||["•"])[0]).join(""); }
+
+  // ---------- Storage ----------
+  async function saveEntry(e){
+    const body = JSON.parse(JSON.stringify(e));
+    if(storeMode === "db"){
+      try { await db.collection("data/users/"+uid).doc(e.id).set(body); return true; }
+      catch(err){ console.error(err); toast("Couldn't save to your journal. Try again."); return false; }
+    }
+    const list = lsGet(LS_KEY, []).filter(x=>x.id!==e.id); list.push(body); lsSet(LS_KEY, list);
+    entries = list.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+    return true;
+  }
+  async function deleteEntry(id){
+    if(storeMode === "db"){ try { await db.collection("data/users/"+uid).doc(id).delete(); } catch(err){ toast("Couldn't delete. Try again."); return; } }
+    else { const list = lsGet(LS_KEY, []).filter(x=>x.id!==id); lsSet(LS_KEY, list); entries = list.sort((a,b)=>b.createdAt.localeCompare(a.createdAt)); }
+    toast("Entry deleted");
+  }
+
+  async function initStorage(){
+    let userCap = null;
+    try { [db, userCap] = await Promise.all([claude.use("db"), claude.use("user")]); } catch {}
+    try { uid = userCap ? await userCap.id() : null; } catch { uid = null; }
+    if(db && uid){
+      storeMode = "db";
+      const timer = setTimeout(()=>{ if(!loaded){ loaded = true; render(); } }, 10000);
+      db.collection("data/users/"+uid).orderBy("createdAt","desc").onSnapshot(snap => {
+        entries = snap.docs.map(d => d.data()).filter(Boolean);
+        if(!snap.metadata.fromCache){ clearTimeout(timer); }
+        loaded = true;
+        if(view === "home" || view === "entry") render();
+      }, err => { clearTimeout(timer); console.error(err); loaded = true; render(); });
+    } else {
+      storeMode = "local";
+      entries = lsGet(LS_KEY, []).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+      loaded = true;
+      render();
+    }
+  }
+
+  async function initCaps(){
+    try { sample = await claude.use("sample"); } catch { sample = null; }
+    try { dict = await claude.use("dictation"); } catch { dict = null; }
+    if(dict){
+      dict.onPartial(({text}) => { const p=document.getElementById("partial"); if(p) p.textContent = text; });
+      dict.onFinal(({text}) => {
+        const ta = document.getElementById("talk"); const p=document.getElementById("partial");
+        if(p) p.textContent = "";
+        if(ta && text){ ta.value = (ta.value.trim() ? ta.value.trimEnd()+" " : "") + text.trim(); ta.dispatchEvent(new Event("input")); }
+      });
+      dict.onState(({state}) => {
+        const b = document.getElementById("micBtn"); const l=document.getElementById("micLabel");
+        if(!b) return;
+        const live = state === "listening";
+        b.classList.toggle("live", live);
+        b.innerHTML = live ? STOP_SVG : MIC_SVG;
+        if(l) l.textContent = live ? "Listening… tap to pause" : "Tap to talk";
+      });
+    }
+    if(view === "talk" || view === "answer") render();
+  }
+
+  // ---------- AI ----------
+  function buildPrompt(d, mode){
+    const date = fmtDate(d.createdAt);
+    const follow = (d.followups||[]).filter(f=>f.a).map((f,i)=>`Follow-up question ${i+1}: ${f.q}\nTheir answer: ${f.a}`).join("\n\n");
+    return `You are the writing engine inside "The Talking Journal", a voice journaling app. The person talked out loud about their day (voice-to-text, so expect run-on sentences, filler words, swearing and transcription mistakes). Turn everything they said into one organized, dated journal entry.
+
+Rules for the entry:
+- Write in their voice, first person ("I"), keeping their meaning, feelings and tone. Don't sanitize or soften what they felt, but you may tidy profanity-heavy phrasing lightly.
+- Organize thoughts by theme, not by the order they rambled in. Use 2-5 sections with short plain headings that fit the content (for example: "What happened", "How I felt", "People on my mind", "Wins", "Still sitting with").
+- Each point is one clean sentence. Keep real details (names, places, what was said). Don't invent anything.
+- No advice, no lessons, no therapy language inside the entry itself.
+- "highlights": 0-3 genuinely good or sweet moments they mentioned, in their voice. Empty array if none.
+
+Reply mode chosen by the person: "${mode}".
+- "note": reflection = null, question = null. Just the organized entry.
+- "reflect": reflection = 2-4 warm, grounded sentences speaking to them ("you"), reflecting back what you heard and naming the feelings underneath. No advice, no fixing, no clichés. question = null.
+- "prompt": question = ONE short, gentle, open question that helps them go deeper on whatever seems most alive or unresolved. reflection = null.
+
+Return ONLY JSON in this exact shape:
+{"title": "3-7 word title", "summary": "1-2 sentence first-person summary of the day", "sections": [{"heading": "...", "points": ["..."]}], "highlights": ["..."], "reflection": null, "question": null}
+
+Date: ${date}
+Mood they picked at the start: ${(d.moods||[]).join(", ") || "not given"}${d.moodWord ? ` (in their words: "${d.moodWord}")` : ""}
+
+What they said:
+"""
+${d.raw}
+"""
+${follow ? "\n" + follow + "\n" : ""}`;
+  }
+
+  function parseJSON(text){
+    const m = String(text).match(/\{[\s\S]*\}/);
+    return JSON.parse(m ? m[0] : text);
+  }
+
+  async function organize(d, mode){
+    if(!sample) throw {code:"no_sample"};
+    const input = buildPrompt(d, mode);
+    let out;
+    try { out = await sample.json(input, {modelTier:"default", cache:false}); }
+    catch(err){
+      if(err && (err.code === "not_granted" || err.code === "rate_limited")) throw err;
+      const r = await sample(input, {modelTier:"default", cache:false});
+      out = parseJSON(r.text);
+    }
+    if(typeof out === "string") out = parseJSON(out);
+    return {
+      title: out.title || "Today",
+      summary: out.summary || "",
+      sections: Array.isArray(out.sections) ? out.sections.filter(s=>s && s.heading) : [],
+      highlights: Array.isArray(out.highlights) ? out.highlights : [],
+      reflection: mode === "reflect" ? (out.reflection || null) : null,
+      question: mode === "prompt" ? (out.question || null) : null
+    };
+  }
+
+  // ---------- Views ----------
+  function render(){
+    if(view === "home") return renderHome();
+    if(view === "mood") return renderMood();
+    if(view === "talk") return renderTalk(false);
+    if(view === "answer") return renderTalk(true);
+    if(view === "choose") return renderChoose();
+    if(view === "loading") return renderLoading();
+    if(view === "entry") return renderEntry();
+  }
+  function go(v){ stopDictation(); view = v; render(); window.scrollTo(0,0); }
+
+  function renderHome(){
+    const s = streak();
+    const saved = lsGet(DRAFT_KEY, null);
+    app.innerHTML = `
+      <div class="hero">
+        <div class="stripes"><i></i><i></i><i></i><i></i></div>
+        <div class="eyebrow">The Talking Journal</div>
+        <h1>${greeting()}.</h1>
+        <p class="muted">Just talk. I'll turn it into your journal.</p>
+      </div>
+      ${storeMode === "local" ? `<div class="notice">Saving on this device only. Open this page while signed in to Claude to keep entries across devices.</div>` : ""}
+      ${saved && saved.raw ? `<div class="card row between" style="margin-bottom:14px"><div><b>Unfinished entry</b><div class="small muted">From ${fmtTime(saved.createdAt)}</div></div><button class="btn btn-soft" id="resume">Resume</button></div>` : ""}
+      <button class="card start btn-block" id="startBtn">
+        <div class="mic-big">${MIC_SVG}</div>
+        <h2>Start talking</h2>
+        <div class="muted small">Check in with your mood, then say whatever's on your mind.</div>
+      </button>
+      <div class="stats">
+        <div class="stat"><b>${entries.length}</b><span class="small muted">entries</span></div>
+        <div class="stat"><b>${s}</b><span class="small muted">day streak</span></div>
+      </div>
+      <h3 class="list-h">Your entries</h3>
+      <div id="list">${!loaded ? `<div class="empty">Loading your journal…</div>` :
+        entries.length === 0 ? `<div class="empty">No entries yet. Your first one is a tap away.</div>` :
+        entries.map(e => `
+          <button class="card entry-card" data-id="${esc(e.id)}">
+            <div class="row between"><span class="date">${esc(fmtDate(e.createdAt,{weekday:"short",month:"short",day:"numeric"}))} · ${esc(fmtTime(e.createdAt))}</span><span class="moods">${moodEmojis(e)}</span></div>
+            <h3>${esc(e.entry?.title || "Untitled")}</h3>
+            <p>${esc(e.entry?.summary || "")}</p>
+          </button>`).join("")}
+      </div>`;
+    document.getElementById("startBtn").onclick = () => {
+      draft = {id: "e" + Date.now().toString(36) + Math.random().toString(36).slice(2,6), createdAt: new Date().toISOString(), moods: [], moodWord: "", raw: "", followups: [], mode: null, entry: null};
+      go("mood");
+    };
+    const r = document.getElementById("resume");
+    if(r) r.onclick = () => { draft = saved; go(draft.entry ? "choose" : "talk"); };
+    app.querySelectorAll(".entry-card").forEach(b => b.onclick = () => { openId = b.dataset.id; draft = null; go("entry"); });
+  }
+
+  function renderMood(){
+    app.innerHTML = `
+      <button class="back" id="back">← Back</button>
+      <div class="eyebrow">Step 1 of 2</div>
+      <h1>How are you feeling?</h1>
+      <p class="muted" style="margin-top:6px">Pick up to two. It goes at the top of today's entry.</p>
+      <div class="chips">${MOODS.map(([e,n]) => `<button class="chip ${draft.moods.includes(n)?"on":""}" data-m="${n}"><span>${e}</span>${n}</button>`).join("")}</div>
+      <div style="margin-top:18px">
+        <label class="small muted" for="mw">Or in your own words (optional)</label>
+        <input class="text" id="mw" placeholder="e.g. drained but proud" value="${esc(draft.moodWord)}" style="margin-top:6px">
+      </div>
+      <div class="sticky-foot"><div class="inner"><button class="btn btn-primary btn-block" id="next">Continue</button></div></div>`;
+    document.getElementById("back").onclick = () => go("home");
+    app.querySelectorAll(".chip").forEach(c => c.onclick = () => {
+      const m = c.dataset.m;
+      if(draft.moods.includes(m)) draft.moods = draft.moods.filter(x=>x!==m);
+      else { draft.moods.push(m); if(draft.moods.length > 2) draft.moods.shift(); }
+      app.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", draft.moods.includes(x.dataset.m)));
+    });
+    document.getElementById("mw").oninput = e => draft.moodWord = e.target.value;
+    document.getElementById("next").onclick = () => go("talk");
+  }
+
+  function renderTalk(isAnswer){
+    const q = isAnswer ? pendingQuestion : null;
+    app.innerHTML = `
+      <button class="back" id="back">← Back</button>
+      <div class="eyebrow">${isAnswer ? "Going deeper" : "Step 2 of 2"}</div>
+      <h1>${isAnswer ? esc(q) : "What's on your mind?"}</h1>
+      <p class="muted" style="margin-top:6px">${isAnswer ? "Answer however you want. It gets folded into today's entry." : "The good stuff and the not-so-good stuff. Ramble. Nothing needs to make sense yet."}</p>
+      ${dict ? `
+        <div class="mic-row">
+          <button class="mic" id="micBtn" aria-label="Talk">${MIC_SVG}</button>
+          <div><b id="micLabel">Tap to talk</b><div class="small muted">You can also type or edit below.</div></div>
+        </div>` : `
+        <div class="tip" style="margin:16px 0 4px">🎙 Tap the microphone on your keyboard to talk instead of typing.</div>`}
+      <div class="talk-box" style="margin-top:12px">
+        <textarea id="talk" placeholder="${isAnswer ? "Talk it through…" : "So today…"}"></textarea>
+        <div class="partial" id="partial"></div>
+      </div>
+      <div class="sticky-foot"><div class="inner"><button class="btn btn-primary btn-block" id="done" disabled>${isAnswer ? "Add to my entry" : "I'm done talking"}</button></div></div>`;
+    const ta = document.getElementById("talk");
+    const done = document.getElementById("done");
+    ta.value = isAnswer ? "" : (draft.raw || "");
+    const sync = () => {
+      done.disabled = !ta.value.trim();
+      if(!isAnswer){ draft.raw = ta.value; lsSet(DRAFT_KEY, draft); }
+    };
+    ta.addEventListener("input", sync); sync();
+    document.getElementById("back").onclick = () => go(isAnswer ? "entry" : "mood");
+    const mic = document.getElementById("micBtn");
+    if(mic) mic.onclick = () => {
+      if(mic.classList.contains("live")){ dict.stop().catch(()=>{}); return; }
+      dict.start().catch(err => {
+        if(err && err.code === "not_granted"){ dict = null; toast("Mic not allowed. Use your keyboard's mic instead."); render(); }
+      });
+    };
+    done.onclick = async () => {
+      if(dict){ try { await dict.stop(); } catch {} }
+      const text = ta.value.trim(); if(!text) return;
+      if(isAnswer){
+        draft.followups.push({q: pendingQuestion, a: text});
+        pendingQuestion = null;
+      } else {
+        draft.raw = text;
+      }
+      lsSet(DRAFT_KEY, draft);
+      go("choose");
+    };
+    if(!dict) setTimeout(()=>ta.focus(), 50);
+  }
+
+  function renderChoose(){
+    let pick = "note";
+    const opts = [
+      ["note","📝","Just note it","Organize it into today's entry. Nothing back from me."],
+      ["reflect","💛","Reflect it back","Organize it, plus a few lines on what I heard."],
+      ["prompt","💬","Prompt me","Organize it, then ask one question to help me go deeper."]
+    ];
+    app.innerHTML = `
+      <div class="eyebrow">Got it</div>
+      <h1>What would you like?</h1>
+      <p class="muted" style="margin-top:6px">Either way, this becomes a dated, organized journal entry.</p>
+      <div style="margin-top:20px">${opts.map(([k,ic,t,d]) => `
+        <button class="card opt ${k===pick?"on":""}" data-k="${k}"><div class="ic">${ic}</div><div><b>${t}</b><span class="small muted">${d}</span></div></button>`).join("")}
+      </div>
+      <button class="btn btn-ghost btn-block" id="more" style="margin-top:10px">Wait, I want to keep talking</button>
+      <div class="sticky-foot"><div class="inner"><button class="btn btn-primary btn-block" id="go">Make my entry</button></div></div>`;
+    app.querySelectorAll(".opt").forEach(o => o.onclick = () => { pick = o.dataset.k; app.querySelectorAll(".opt").forEach(x=>x.classList.toggle("on", x.dataset.k===pick)); });
+    document.getElementById("more").onclick = () => {
+      if(draft.followups.length){ pendingQuestion = "Anything else on your mind?"; go("answer"); }
+      else go("talk");
+    };
+    document.getElementById("go").onclick = () => run(pick);
+  }
+
+  function renderLoading(){
+    app.innerHTML = `<div class="loading"><div class="dots"><i></i><i></i><i></i></div><h2>Writing your entry…</h2><p class="muted" style="margin-top:6px">Sorting your thoughts into something you'll want to reread.</p></div>`;
+  }
+
+  async function run(mode){
+    go("loading");
+    try {
+      const result = await organize(draft, mode);
+      draft.mode = mode;
+      draft.entry = result;
+      draft.updatedAt = new Date().toISOString();
+      const ok = await saveEntry(draft);
+      if(ok) lsDel(DRAFT_KEY);
+      openId = draft.id;
+      if(storeMode === "db"){ const i = entries.findIndex(e=>e.id===draft.id); if(i>=0) entries[i] = draft; else entries.unshift(draft); }
+      go("entry");
+    } catch(err){
+      console.error(err);
+      const msg = err && err.code === "not_granted" ? "Claude needs permission to write your entry. Tap Make my entry again and allow it."
+        : err && err.code === "rate_limited" ? "Too many requests right now. Wait a minute and try again."
+        : err && err.code === "no_sample" ? "Writing isn't available in this view. Open the page in the Claude app or claude.ai."
+        : "Something went wrong writing your entry. Your words are saved, so try again.";
+      go("choose");
+      toast(msg);
+    }
+  }
+
+  function renderEntry(){
+    const e = (draft && draft.id === openId) ? draft : entries.find(x => x.id === openId);
+    if(!e){ return go("home"); }
+    const en = e.entry || {};
+    const isFresh = draft && draft.id === e.id;
+    const q = isFresh ? en.question : null;
+    app.innerHTML = `
+      <button class="back" id="back">← All entries</button>
+      <div class="entry-head">
+        <div class="date">${esc(fmtDate(e.createdAt))} · ${esc(fmtTime(e.createdAt))}</div>
+        <h1>${esc(en.title || "Untitled")}</h1>
+        ${(e.moods?.length || e.moodWord) ? `<div class="mood-tags">${(e.moods||[]).map(m=>`<span class="tag">${(MOODS.find(x=>x[1]===m)||["•"])[0]} ${esc(m)}</span>`).join("")}${e.moodWord?`<span class="tag">“${esc(e.moodWord)}”</span>`:""}</div>` : ""}
+      </div>
+      ${en.summary ? `<p class="summary">${esc(en.summary)}</p>` : ""}
+      <div class="stack" style="margin-top:18px">
+        ${(en.sections||[]).map(s => `<div class="card section"><h3>${esc(s.heading)}</h3><ul>${(s.points||[]).map(p=>`<li>${esc(p)}</li>`).join("")}</ul></div>`).join("")}
+        ${(en.highlights||[]).length ? `<div class="card highlights section"><h3>✨ Good moments</h3><ul>${en.highlights.map(h=>`<li>${esc(h)}</li>`).join("")}</ul></div>` : ""}
+        ${en.reflection ? `<div class="card reflection"><div class="eyebrow" style="margin-bottom:6px">What I heard</div><p>${esc(en.reflection)}</p></div>` : ""}
+        ${q ? `<div class="card question"><div class="eyebrow">A question for you</div><p class="q">${esc(q)}</p><div class="row"><button class="btn btn-primary" id="answer">Answer it</button><button class="btn btn-ghost" id="skip">Not now</button></div></div>` : ""}
+        <div class="card">
+          <details><summary>What I actually said</summary>
+            <div class="raw">${esc(e.raw)}</div>
+            ${(e.followups||[]).filter(f=>f.a).map(f=>`<div class="follow"><b>${esc(f.q)}</b><div class="raw">${esc(f.a)}</div></div>`).join("")}
+          </details>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-soft" id="copy">Copy entry</button>
+        <button class="btn btn-soft" id="addmore">Add more</button>
+        <button class="btn btn-ghost" id="del">Delete</button>
+      </div>`;
+    document.getElementById("back").onclick = () => { draft = null; go("home"); };
+    const a = document.getElementById("answer");
+    if(a) a.onclick = () => { pendingQuestion = q; go("answer"); };
+    const sk = document.getElementById("skip");
+    if(sk) sk.onclick = () => { draft = null; render(); toast("Saved to your journal"); };
+    document.getElementById("addmore").onclick = () => { draft = JSON.parse(JSON.stringify(e)); pendingQuestion = "What else do you want to add?"; go("answer"); };
+    document.getElementById("copy").onclick = async () => {
+      const lines = [fmtDate(e.createdAt), en.title, (e.moods||[]).join(", ") + (e.moodWord?` (${e.moodWord})`:""), "", en.summary, ""];
+      (en.sections||[]).forEach(s => { lines.push(s.heading); (s.points||[]).forEach(p=>lines.push("• "+p)); lines.push(""); });
+      if((en.highlights||[]).length){ lines.push("Good moments"); en.highlights.forEach(h=>lines.push("• "+h)); lines.push(""); }
+      if(en.reflection){ lines.push("What I heard", en.reflection); }
+      try { await navigator.clipboard.writeText(lines.filter((l,i,arr)=>!(l===""&&arr[i-1]==="")).join("\n").trim()); toast("Copied"); }
+      catch { toast("Couldn't copy on this device"); }
+    };
+    document.getElementById("del").onclick = () => confirmModal("Delete this entry?", "This can't be undone.", async () => { await deleteEntry(e.id); draft = null; go("home"); });
+  }
+
+  function confirmModal(title, body, onYes){
+    const m = document.createElement("div");
+    m.className = "modal";
+    m.innerHTML = `<div class="card"><h3>${esc(title)}</h3><p class="muted small" style="margin:6px 0 16px">${esc(body)}</p><div class="row" style="justify-content:flex-end"><button class="btn btn-ghost" data-n>Cancel</button><button class="btn btn-primary" data-y>Delete</button></div></div>`;
+    document.body.appendChild(m);
+    m.querySelector("[data-n]").onclick = () => m.remove();
+    m.querySelector("[data-y]").onclick = () => { m.remove(); onYes(); };
+    m.onclick = ev => { if(ev.target === m) m.remove(); };
+  }
+
+  function stopDictation(){ if(dict){ try { dict.stop().catch(()=>{}); } catch {} } }
+
+  render();
+  if(window.claude && typeof claude.use === "function"){ initStorage(); initCaps(); }
+  else { storeMode = "local"; entries = lsGet(LS_KEY, []).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)); loaded = true; render(); }
+})();
+</script>
+</body>
+</html>
